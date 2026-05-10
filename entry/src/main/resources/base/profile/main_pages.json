@@ -1,6 +1,7 @@
 {
   "src": [
     "pages/Index",
-    "pages/AddRecordPage"
+    "pages/AddRecordPage",
+    "pages/StatsPage"
   ]
 }

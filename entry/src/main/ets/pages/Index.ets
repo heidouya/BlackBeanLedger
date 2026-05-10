@@ -1,14 +1,58 @@
 import { router } from '@kit.ArkUI';
 import { promptAction } from '@kit.ArkUI';
-import { RecordModel } from '../model/RecordModel';
+import { Record } from '../model/RecordModel';
 import { RecordDatabase } from '../database/RecordDatabase';
 import { DateUtil } from '../utils/DateUtil';
-import { CategoryItem, getCategoriesByType } from '../constants/CategoryConstants';
+import { getCategoryIcon } from '../constants/CategoryConstants';
 
 /** 分组后的记录结构 */
 class RecordGroup {
   dateLabel: string = '';
-  records: RecordModel[] = [];
+  records: Record[] = [];
+}
+
+/** LazyForEach 数据源 */
+class RecordGroupDataSource implements IDataSource {
+  private groups: RecordGroup[] = [];
+  private listeners: DataChangeListener[] = [];
+
+  totalCount(): number {
+    return this.groups.length;
+  }
+
+  getData(index: number): RecordGroup {
+    return this.groups[index];
+  }
+
+  setData(groups: RecordGroup[]): void {
+    this.groups = groups;
+    this.notifyDataReload();
+  }
+
+  registerDataChangeListener(listener: DataChangeListener): void {
+    if (this.listeners.indexOf(listener) < 0) {
+      this.listeners.push(listener);
+    }
+  }
+
+  unregisterDataChangeListener(listener: DataChangeListener): void {
+    const pos: number = this.listeners.indexOf(listener);
+    if (pos >= 0) {
+      this.listeners.splice(pos, 1);
+    }
+  }
+
+  notifyDataReload(): void {
+    this.listeners.forEach((listener: DataChangeListener) => {
+      listener.onDataReloaded();
+    });
+  }
+
+  notifyDataChange(index: number): void {
+    this.listeners.forEach((listener: DataChangeListener) => {
+      listener.onDataChanged(index);
+    });
+  }
 }
 
 @Entry
@@ -18,10 +62,10 @@ struct Index {
   @State monthlyIncome: number = 0;
   @State monthlyExpense: number = 0;
   @State monthlyBalance: number = 0;
-  @State recordGroups: RecordGroup[] = [];
   @State isRefreshing: boolean = false;
-  @State isLoading: boolean = true;
+  @State isEmpty: boolean = false;
   private db: RecordDatabase = RecordDatabase.getInstance();
+  private dataSource: RecordGroupDataSource = new RecordGroupDataSource();
 
   aboutToAppear(): void {
     this.loadData();
@@ -41,43 +85,38 @@ struct Index {
       const month: number = currentYM.month;
       this.monthTitle = `${year}年${String(month).padStart(2, '0')}月`;
 
-      // 计算本月收入
-      const incomeRecords: RecordModel[] = await this.db.queryByTypeAndMonth(1, year, month);
-      this.monthlyIncome = incomeRecords.reduce((sum: number, r: RecordModel) => sum + r.amount, 0);
-
-      // 计算本月支出
-      const expenseRecords: RecordModel[] = await this.db.queryByTypeAndMonth(0, year, month);
-      this.monthlyExpense = expenseRecords.reduce((sum: number, r: RecordModel) => sum + r.amount, 0);
-
-      // 计算结余
+      // 使用 getMonthStats 一次性获取月度统计
+      const stats = await this.db.getMonthStats(year, month);
+      this.monthlyIncome = stats.totalIncome;
+      this.monthlyExpense = stats.totalExpense;
       this.monthlyBalance = this.monthlyIncome - this.monthlyExpense;
 
       // 加载全部记录并分组
-      const allRecords: RecordModel[] = await this.db.queryAllRecords();
-      this.recordGroups = this.groupRecordsByDate(allRecords);
+      const allRecords: Record[] = await this.db.getAllRecords();
+      const groups: RecordGroup[] = this.groupRecordsByDate(allRecords);
+      this.dataSource.setData(groups);
+      this.isEmpty = groups.length === 0;
     } catch (err) {
       console.error(`首页数据加载失败: ${JSON.stringify(err)}`);
-    } finally {
-      this.isLoading = false;
     }
   }
 
   /**
    * 将记录按日期分组
    */
-  private groupRecordsByDate(records: RecordModel[]): RecordGroup[] {
-    const groupMap: Map<string, RecordModel[]> = new Map();
+  private groupRecordsByDate(records: Record[]): RecordGroup[] {
+    const groupMap: Map<string, Record[]> = new Map();
     for (const record of records) {
-      const label: string = DateUtil.formatDateDisplay(record.date);
-      if (!groupMap.has(label)) {
-        groupMap.set(label, []);
+      const datePart: string = DateUtil.extractDatePart(record.date);
+      if (!groupMap.has(datePart)) {
+        groupMap.set(datePart, []);
       }
-      groupMap.get(label)!.push(record);
+      groupMap.get(datePart)!.push(record);
     }
     const groups: RecordGroup[] = [];
-    groupMap.forEach((recs: RecordModel[], label: string) => {
+    groupMap.forEach((recs: Record[], datePart: string) => {
       const group: RecordGroup = new RecordGroup();
-      group.dateLabel = label;
+      group.dateLabel = DateUtil.formatDateDisplay(datePart);
       group.records = recs;
       groups.push(group);
     });
@@ -98,7 +137,7 @@ struct Index {
   /**
    * 删除记录
    */
-  async deleteRecord(record: RecordModel): Promise<void> {
+  async deleteRecord(record: Record): Promise<void> {
     try {
       await this.db.deleteRecord(record.id);
       promptAction.showToast({ message: '删除成功', duration: 2000 });
@@ -111,7 +150,7 @@ struct Index {
   /**
    * 弹出删除确认弹窗
    */
-  private showDeleteDialog(record: RecordModel): void {
+  private showDeleteDialog(record: Record): void {
     AlertDialog.show({
       title: '确认删除',
       message: '确定要删除这条记录吗？',
@@ -122,7 +161,7 @@ struct Index {
       },
       secondaryButton: {
         value: '删除',
-        fontColor: '#C62828',
+        fontColor: '#FF5252',
         action: () => {
           this.deleteRecord(record);
         }
@@ -130,51 +169,52 @@ struct Index {
     });
   }
 
-  /**
-   * 根据分类名查找图标资源
-   */
-  private getCategoryIcon(category: string, type: number): Resource {
-    const categories: CategoryItem[] = getCategoriesByType(type);
-    for (const cat of categories) {
-      if (cat.name === category) {
-        return cat.icon;
-      }
-    }
-    return $r('sys.symbol.ellipsis_circle');
-  }
-
   build() {
     Stack() {
       Column() {
-        // 月份标题
-        Text(this.monthTitle)
-          .fontSize(18)
-          .fontWeight(FontWeight.Bold)
-          .width('100%')
-          .padding({ left: 16, top: 16, bottom: 8 })
-          .textAlign(TextAlign.Start);
+        // 月份标题 + 统计入口
+        Row() {
+          Text(this.monthTitle)
+            .fontSize(18)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#212121')
+            .layoutWeight(1);
 
-        // 统计卡片区
-        this.buildStatsCards();
+          Text('📊 统计')
+            .fontSize(14)
+            .fontColor('#FF6F00')
+            .padding({ right: 16 })
+            .onClick(() => {
+              router.pushUrl({ url: 'pages/StatsPage' });
+            });
+        }
+        .width('100%')
+        .padding({ left: 16, top: 16, bottom: 12 });
+
+        // 黑色统计卡片
+        this.buildStatsCard();
 
         // 记录列表
         Refresh({ refreshing: $$this.isRefreshing }) {
           List() {
-            if (this.recordGroups.length === 0 && !this.isLoading) {
+            if (this.isEmpty) {
               ListItem() {
                 this.buildEmptyState();
               }
             }
-            ForEach(this.recordGroups, (group: RecordGroup, groupIndex: number) => {
+            LazyForEach(this.dataSource, (group: RecordGroup, groupIndex: number) => {
               ListItemGroup({ header: this.buildGroupHeader(group.dateLabel) }) {
-                ForEach(group.records, (record: RecordModel, recordIndex: number) => {
+                ForEach(group.records, (record: Record, recordIndex: number) => {
                   ListItem() {
                     this.buildRecordRow(record);
                   }
-                  .bindContextMenu(this.buildContextMenu(record), ResponseType.LongPress, {
-                    placement: Placement.BottomLeft
-                  })
-                }, (record: RecordModel) => record.id.toString())
+                  .gesture(
+                    LongPressGesture()
+                      .onAction(() => {
+                        this.showDeleteDialog(record);
+                      })
+                  )
+                }, (record: Record) => record.id.toString())
               }
             }, (group: RecordGroup, groupIndex: number) => groupIndex.toString())
           }
@@ -193,22 +233,23 @@ struct Index {
       }
       .width('100%')
       .height('100%')
-      .backgroundColor('#F8F8F8')
+      .backgroundColor('#F5F5F5')
 
-      // 浮动"+"按钮
+      // 浮动"+"按钮 (FAB)
       Button() {
-        SymbolGlyph($r('sys.symbol.plus'))
-          .fontSize(28)
-          .fontColor([Color.White])
+        Text('+')
+          .fontSize(32)
+          .fontColor(Color.White)
+          .fontWeight(FontWeight.Bold)
       }
-      .width(56)
-      .height(56)
-      .borderRadius(28)
-      .backgroundColor('#007AFF')
-      .shadow({ radius: 8, color: '#40007AFF', offsetY: 4 })
+      .width(60)
+      .height(60)
+      .borderRadius(30)
+      .backgroundColor('#1C1C1E')
+      .shadow({ radius: 12, color: '#40000000', offsetY: 4 })
       .position({ x: '50%', y: '100%' })
       .markAnchor({ x: '50%', y: '100%' })
-      .offset({ x: 0, y: -32 })
+      .offset({ x: 0, y: -28 })
       .onClick(() => {
         router.pushUrl({ url: 'pages/AddRecordPage' });
       })
@@ -218,42 +259,71 @@ struct Index {
   }
 
   /**
-   * 统计卡片
+   * 黑色渐变统计卡片
+   * 背景色 #1C1C1E，圆角 16vp
    */
   @Builder
-  buildStatsCards() {
-    Row() {
-      // 本月收入
-      this.buildStatCard('本月收入', this.monthlyIncome, '#E8F5E9', '#2E7D32');
-      // 本月支出
-      this.buildStatCard('本月支出', this.monthlyExpense, '#FFEBEE', '#C62828');
-      // 本月结余
-      this.buildStatCard('本月结余', this.monthlyBalance, '#E3F2FD', '#1565C0');
+  buildStatsCard() {
+    Stack() {
+      // 渐变背景
+      Column()
+        .width('100%')
+        .height(140)
+        .borderRadius(16)
+        .linearGradient({
+          direction: GradientDirection.Bottom,
+          colors: [['#2C2C2E', 0], ['#1C1C1E', 1]]
+        });
+
+      // 内容层
+      Column() {
+        // 本月结余 - 大号数字
+        Text('¥' + this.formatAmount(this.monthlyBalance))
+          .fontSize(36)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#FFFFFFFF')
+          .fontFamily('HarmonyOS Sans')
+          .margin({ bottom: 12 });
+
+        // 收入支出行
+        Row() {
+          // 本月收入
+          Column() {
+            Text('收入')
+              .fontSize(12)
+              .fontColor('#AAFFFFFF')
+              .margin({ bottom: 2 });
+            Text('¥' + this.formatAmount(this.monthlyIncome))
+              .fontSize(18)
+              .fontWeight(FontWeight.Bold)
+              .fontColor('#4CAF50');
+          }
+          .alignItems(HorizontalAlign.Start);
+
+          Blank();
+
+          // 本月支出
+          Column() {
+            Text('支出')
+              .fontSize(12)
+              .fontColor('#AAFFFFFF')
+              .margin({ bottom: 2 });
+            Text('¥' + this.formatAmount(this.monthlyExpense))
+              .fontSize(18)
+              .fontWeight(FontWeight.Bold)
+              .fontColor('#FF5252');
+          }
+          .alignItems(HorizontalAlign.End);
+        }
+        .width('100%');
+      }
+      .width('100%')
+      .height(140)
+      .padding({ left: 20, right: 20, top: 20, bottom: 16 })
+      .justifyContent(FlexAlign.Center);
     }
     .width('100%')
-    .padding({ left: 12, right: 12, bottom: 8 })
-    .justifyContent(FlexAlign.SpaceEvenly)
-  }
-
-  @Builder
-  buildStatCard(label: string, amount: number, bgColor: string, textColor: string) {
-    Column() {
-      Text(label)
-        .fontSize(14)
-        .fontColor(textColor)
-        .margin({ bottom: 4 });
-      Text(`¥${amount.toFixed(2)}`)
-        .fontSize(22)
-        .fontWeight(FontWeight.Bold)
-        .fontColor(textColor)
-        .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis });
-    }
-    .width('30%')
-    .padding(12)
-    .borderRadius(12)
-    .backgroundColor(bgColor)
-    .alignItems(HorizontalAlign.Center)
+    .padding({ left: 16, right: 16, bottom: 12 })
   }
 
   /**
@@ -262,30 +332,29 @@ struct Index {
   @Builder
   buildGroupHeader(label: string) {
     Text(label)
-      .fontSize(14)
-      .fontColor('#757575')
+      .fontSize(13)
+      .fontColor('#9E9E9E')
       .fontWeight(FontWeight.Medium)
-      .padding({ left: 16, top: 12, bottom: 4 })
-      .backgroundColor('#F8F8F8')
+      .padding({ left: 16, top: 14, bottom: 6 })
+      .backgroundColor('#F5F5F5')
   }
 
   /**
    * 单条记录行
    */
   @Builder
-  buildRecordRow(record: RecordModel) {
+  buildRecordRow(record: Record) {
     Row() {
-      // 分类图标
+      // 分类图标（Emoji）
       Stack() {
-        SymbolGlyph(this.getCategoryIcon(record.category, record.type))
-          .fontSize(24)
-          .fontColor([record.type === 0 ? '#C62828' : '#2E7D32']);
+        Text(getCategoryIcon(record.category, record.type))
+          .fontSize(22);
       }
-      .width(40)
-      .height(40)
-      .borderRadius(20)
-      .backgroundColor('#F0F0F0')
-      .margin({ right: 12 })
+      .width(42)
+      .height(42)
+      .borderRadius(21)
+      .backgroundColor(record.type === 'expense' ? '#FFF0F0' : '#F0FFF0')
+      .margin({ right: 12 });
 
       // 分类名和备注
       Column() {
@@ -303,13 +372,13 @@ struct Index {
         }
       }
       .alignItems(HorizontalAlign.Start)
-      .layoutWeight(1)
+      .layoutWeight(1);
 
       // 金额
-      Text(`${record.type === 0 ? '-' : '+'}¥${record.amount.toFixed(2)}`)
+      Text(`${record.type === 'expense' ? '-' : '+'}¥${record.amount.toFixed(2)}`)
         .fontSize(18)
         .fontWeight(FontWeight.Bold)
-        .fontColor(record.type === 0 ? '#C62828' : '#2E7D32');
+        .fontColor(record.type === 'expense' ? '#FF5252' : '#4CAF50');
     }
     .width('100%')
     .height(64)
@@ -319,38 +388,36 @@ struct Index {
   }
 
   /**
-   * 长按上下文菜单
-   */
-  @Builder
-  buildContextMenu(record: RecordModel) {
-    Menu() {
-      MenuItem({
-        content: '删除',
-        labelInfo: '删除'
-      })
-        .onClick(() => {
-          this.showDeleteDialog(record);
-        })
-    }
-  }
-
-  /**
    * 空状态
    */
   @Builder
   buildEmptyState() {
     Column() {
-      SymbolGlyph($r('sys.symbol.ellipsis_circle'))
-        .fontSize(64)
-        .fontColor(['#BDBDBD']);
-      Text('暂无记录，点击下方 + 开始记账')
-        .fontSize(14)
+      Text('📋')
+        .fontSize(56)
+        .margin({ bottom: 16 });
+      Text('暂无记录')
+        .fontSize(16)
         .fontColor('#9E9E9E')
-        .margin({ top: 16 });
+        .margin({ bottom: 4 });
+      Text('点击下方 + 开始记账')
+        .fontSize(14)
+        .fontColor('#BDBDBD');
     }
     .width('100%')
     .height(300)
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
+  }
+
+  /**
+   * 格式化金额（千分位）
+   */
+  private formatAmount(amount: number): string {
+    const absAmount: number = Math.abs(amount);
+    const parts: string[] = absAmount.toFixed(2).split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const sign: string = amount < 0 ? '-' : '';
+    return sign + parts.join('.');
   }
 }

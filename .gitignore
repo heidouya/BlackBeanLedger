@@ -1,0 +1,10 @@
+# Build
+.hvigor/
+oh_modules/
+
+# IDE
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

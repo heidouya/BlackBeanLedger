@@ -6,7 +6,8 @@ import { getCategoryIcon } from '../constants/CategoryConstants';
 import { AddRecordContent } from './AddRecordPage';
 import { StatsContent } from './StatsPage';
 
-/** 分组后的记录结构 */
+/** 分组后的记录结构 —— @Observed 使 records 属性变化可被框架追踪 */
+@Observed
 class RecordGroup {
   dateLabel: string = '';
   records: Record[] = [];
@@ -26,7 +27,7 @@ class RecordGroupDataSource implements IDataSource {
   }
 
   setData(groups: RecordGroup[]): void {
-    this.groups = groups;
+    this.groups = groups
     this.notifyDataReload();
   }
 
@@ -66,6 +67,7 @@ struct Index {
   @State isRefreshing: boolean = false;
   @State isEmpty: boolean = false;
   @State currentTabIndex: number = 0;
+  @State private dataVersion: number = 0;
   private db: RecordDatabase = RecordDatabase.getInstance();
   private dataSource: RecordGroupDataSource = new RecordGroupDataSource();
   private tabTitles: string[] = ['明细', '统计'];
@@ -124,10 +126,11 @@ struct Index {
       this.monthlyExpense = stats.totalExpense;
       this.monthlyBalance = this.monthlyIncome - this.monthlyExpense;
 
-      // 加载全部记录并分组
+      // 加载全部记录并分组，dataVersion 递增使 LazyForEach 键值变化触发刷新
       const allRecords: Record[] = await this.db.getAllRecords();
       const groups: RecordGroup[] = this.groupRecordsByDate(allRecords);
       this.dataSource.setData(groups);
+      this.dataVersion++;
       this.isEmpty = groups.length === 0;
     } catch (err) {
       console.error(`首页数据加载失败: ${JSON.stringify(err)}`);
@@ -220,7 +223,7 @@ struct Index {
                       })
                     }, (record: Record) => record.id.toString())
                   }
-                }, (group: RecordGroup, groupIndex: number) => groupIndex.toString())
+                }, (group: RecordGroup, groupIndex: number) => `${this.dataVersion}_${groupIndex}`)
               }
               .width('100%')
               .layoutWeight(1)

@@ -68,14 +68,44 @@ struct Index {
   @State currentTabIndex: number = 0;
   private db: RecordDatabase = RecordDatabase.getInstance();
   private dataSource: RecordGroupDataSource = new RecordGroupDataSource();
-  private tabTitles: string[] = ['明细', '记账', '统计'];
+  private tabTitles: string[] = ['明细', '统计'];
+  private addDialogController: CustomDialogController = new CustomDialogController({
+    builder: AddRecordDialog({
+      onSaved: () => {
+        // 回调中无法直接 await，通过标记在下次 loadData 中处理
+      }
+    }),
+    autoCancel: true,
+    alignment: DialogAlignment.Bottom,
+    customStyle: true,
+    cornerRadius: 20
+  });
 
   aboutToAppear(): void {
+    // 重新创建 dialogController，绑定正确的 this 上下文
+    this.addDialogController = new CustomDialogController({
+      builder: AddRecordDialog({
+        onSaved: () => {
+          this.onRecordSaved();
+        }
+      }),
+      autoCancel: true,
+      alignment: DialogAlignment.Bottom,
+      customStyle: true,
+      cornerRadius: 20
+    });
     this.loadData();
   }
 
   onPageShow(): void {
     this.loadData();
+  }
+
+  /**
+   * 记账弹窗保存成功后的回调
+   */
+  async onRecordSaved(): Promise<void> {
+    await this.loadData();
   }
 
   /**
@@ -176,54 +206,75 @@ struct Index {
     Tabs({ index: this.currentTabIndex }) {
       // Tab 0: 明细
       TabContent() {
-        Column() {
-          // 月份标题
-          Row() {
-            Text(this.monthTitle)
-              .fontSize(18)
-              .fontWeight(FontWeight.Bold)
-              .fontColor('#212121')
-              .layoutWeight(1);
-          }
-          .width('100%')
-          .padding({ left: 16, top: 16, bottom: 12 });
-
-          // 黑色统计卡片
-          this.buildStatsCard();
-
-          // 记录列表
-          Refresh({ refreshing: $$this.isRefreshing }) {
-            List() {
-              if (this.isEmpty) {
-                ListItem() {
-                  this.buildEmptyState();
-                }
-              }
-              LazyForEach(this.dataSource, (group: RecordGroup, groupIndex: number) => {
-                ListItemGroup({ header: this.buildGroupHeader(group.dateLabel) }) {
-                  ForEach(group.records, (record: Record, recordIndex: number) => {
-                    ListItem() {
-                      this.buildRecordRow(record);
-                    }
-                    .gesture(
-                      LongPressGesture()
-                        .onAction(() => {
-                          this.showDeleteDialog(record);
-                        })
-                    )
-                  }, (record: Record) => record.id.toString())
-                }
-              }, (group: RecordGroup, groupIndex: number) => groupIndex.toString())
+        Stack() {
+          Column() {
+            // 月份标题
+            Row() {
+              Text(this.monthTitle)
+                .fontSize(18)
+                .fontWeight(FontWeight.Bold)
+                .fontColor('#212121')
+                .layoutWeight(1);
             }
             .width('100%')
+            .padding({ left: 16, top: 16, bottom: 12 });
+
+            // 黑色统计卡片
+            this.buildStatsCard();
+
+            // 记录列表
+            Refresh({ refreshing: $$this.isRefreshing }) {
+              List() {
+                if (this.isEmpty) {
+                  ListItem() {
+                    this.buildEmptyState();
+                  }
+                }
+                LazyForEach(this.dataSource, (group: RecordGroup, groupIndex: number) => {
+                  ListItemGroup({ header: this.buildGroupHeader(group.dateLabel) }) {
+                    ForEach(group.records, (record: Record, recordIndex: number) => {
+                      ListItem() {
+                        this.buildRecordRow(record);
+                      }
+                      .gesture(
+                        LongPressGesture()
+                          .onAction(() => {
+                            this.showDeleteDialog(record);
+                          })
+                      )
+                    }, (record: Record) => record.id.toString())
+                  }
+                }, (group: RecordGroup, groupIndex: number) => groupIndex.toString())
+              }
+              .width('100%')
+              .layoutWeight(1)
+              .divider({ strokeWidth: 0.5, color: '#F0F0F0', startMargin: 60 })
+            }
+            .onRefreshing(() => {
+              this.onRefresh();
+            })
+            .refreshOffset(64)
             .layoutWeight(1)
-            .divider({ strokeWidth: 0.5, color: '#F0F0F0', startMargin: 60 })
           }
-          .onRefreshing(() => {
-            this.onRefresh();
+          .width('100%')
+          .height('100%')
+
+          // 黑色圆形加号按钮（悬浮在右下角）
+          Button() {
+            Text('+')
+              .fontSize(32)
+              .fontColor(Color.White)
+          }
+          .type(ButtonType.Circle)
+          .width(56)
+          .height(56)
+          .backgroundColor('#1C1C1E')
+          .shadow({ radius: 12, color: '#601C1C1E', offsetY: 4 })
+          .position({ x: '100%', y: '100%' })
+          .offset({ x: -72, y: -20 })
+          .onClick(() => {
+            this.addDialogController.open();
           })
-          .refreshOffset(64)
-          .layoutWeight(1)
         }
         .width('100%')
         .height('100%')
@@ -231,18 +282,7 @@ struct Index {
       }
       .tabBar('📋 明细')
 
-      // Tab 1: 记账
-      TabContent() {
-        AddRecordContent({
-          onSaved: async () => {
-            await this.loadData();
-            this.currentTabIndex = 0;
-          }
-        })
-      }
-      .tabBar('✏️ 记账')
-
-      // Tab 2: 统计
+      // Tab 1: 统计
       TabContent() {
         StatsContent()
       }
@@ -398,7 +438,7 @@ struct Index {
         .fontSize(16)
         .fontColor('#9E9E9E')
         .margin({ bottom: 4 });
-      Text('点击底部记账 Tab 开始记账')
+      Text('点击右下角 + 按钮开始记账')
         .fontSize(14)
         .fontColor('#BDBDBD');
     }
@@ -417,5 +457,29 @@ struct Index {
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     const sign: string = amount < 0 ? '-' : '';
     return sign + parts.join('.');
+  }
+}
+
+/**
+ * 记账弹窗（底部弹出，嵌入 AddRecordContent 表单）
+ */
+@CustomDialog
+struct AddRecordDialog {
+  controller: CustomDialogController;
+  onSaved?: () => void;
+
+  build() {
+    Column() {
+      AddRecordContent({
+        onSaved: () => {
+          this.onSaved?.();
+          this.controller.close();
+        }
+      })
+    }
+    .width('100%')
+    .height('80%')
+    .borderRadius({ topLeft: 20, topRight: 20 })
+    .backgroundColor('#F5F5F5')
   }
 }

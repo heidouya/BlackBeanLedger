@@ -1,10 +1,12 @@
-# Build
-.hvigor/
-oh_modules/
-
-# IDE
-.idea/
-
-# OS
-.DS_Store
-Thumbs.db
+/node_modules
+/oh_modules
+/local.properties
+/.idea
+**/build
+/.hvigor
+.cxx
+/.clangd
+/.clang-format
+/.clang-tidy
+**/.test
+/.appanalyzer

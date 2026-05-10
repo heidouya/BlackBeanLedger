@@ -289,7 +289,11 @@ struct AddRecordPage {
       AddRecordContent({
         editRecord: this.editRecord,
         onSaved: () => {
-          router.back();
+          if (this.isEdit) {
+            router.replaceUrl({ url: 'pages/Index' });
+          } else {
+            router.back();
+          }
         }
       })
     }

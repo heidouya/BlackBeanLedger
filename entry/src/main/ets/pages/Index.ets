@@ -234,7 +234,8 @@ struct Index {
       // Tab 1: 记账
       TabContent() {
         AddRecordContent({
-          onSaved: () => {
+          onSaved: async () => {
+            await this.loadData();
             this.currentTabIndex = 0;
           }
         })

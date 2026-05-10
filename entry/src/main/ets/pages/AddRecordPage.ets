@@ -13,6 +13,8 @@ import { CategoryItem, getCategoriesByType } from '../constants/CategoryConstant
 export struct AddRecordContent {
   @State currentType: 'expense' | 'income' = 'expense';
   @State amountStr: string = '';
+  @State amountExpression: string = ''; // 含运算符的原始表达式
+  @State computedPreview: string = ''; // 实时计算结果预览
   @State selectedCategory: string = '';
   @State note: string = '';
   @State selectedDate: Date = new Date();
@@ -30,6 +32,8 @@ export struct AddRecordContent {
    */
   private resetForm(): void {
     this.amountStr = '';
+    this.amountExpression = '';
+    this.computedPreview = '';
     this.selectedCategory = '';
     this.note = '';
     this.displayDate = '今天';
@@ -117,8 +121,8 @@ export struct AddRecordContent {
           // Tab 切换（支出/收入）
           this.buildTabs();
 
-          // 金额输入
-          this.buildAmountInput();
+          // 金额展示（无系统键盘）
+          this.buildAmountDisplay();
 
           // 分割线
           Divider().color('#F0F0F0').margin({ left: 16, right: 16 });
@@ -138,17 +142,17 @@ export struct AddRecordContent {
           // 日期选择
           this.buildDatePicker();
 
-          // 保存按钮
-          this.buildSaveButton();
-
-          // 底部安全区
-          Blank().height(40);
+          // 底部留白
+          Blank().height(20);
         }
         .width('100%');
       }
       .layoutWeight(1)
       .scrollBar(BarState.Off)
-      .edgeEffect(EdgeEffect.Spring);
+      .edgeEffect(EdgeEffect.Spring)
+
+      // 自定义数字键盘（固定在底部）
+      this.buildKeypad();
     }
     .width('100%')
     .height('100%')
@@ -219,10 +223,10 @@ export struct AddRecordContent {
   }
 
   /**
-   * 金额输入区
+   * 金额展示区（无 TextInput，由自定义键盘控制）
    */
   @Builder
-  buildAmountInput() {
+  buildAmountDisplay() {
     Column() {
       Row() {
         Text('¥')
@@ -231,29 +235,31 @@ export struct AddRecordContent {
           .fontColor('#212121')
           .margin({ right: 4 });
 
-        TextInput({ text: this.amountStr, placeholder: '0.00' })
+        Text(this.amountExpression || '0')
           .fontSize(48)
           .fontWeight(FontWeight.Bold)
           .fontColor('#212121')
-          .type(InputType.Number)
-          .placeholderColor('#BDBDBD')
-          .backgroundColor(Color.Transparent)
-          .borderRadius(0)
-          .border({ width: 0, color: Color.Transparent })
-          .padding(0)
-          .maxLength(12)
           .textAlign(TextAlign.Start)
-          .onChange((value: string) => {
-            this.amountStr = value;
-          });
+          .layoutWeight(1)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis });
       }
-      .justifyContent(FlexAlign.Center)
-      .alignItems(VerticalAlign.Center);
+      .justifyContent(FlexAlign.Start)
+      .alignItems(VerticalAlign.Center)
+      .width('100%');
+
+      if (this.computedPreview !== '') {
+        Text(`= ${this.computedPreview}`)
+          .fontSize(22)
+          .fontColor('#9E9E9E')
+          .width('100%')
+          .padding({ top: 6 });
+      }
     }
     .width('100%')
     .padding({ left: 24, right: 24, top: 20, bottom: 20 })
     .backgroundColor(Color.White)
-    .alignItems(HorizontalAlign.Center)
+    .alignItems(HorizontalAlign.Start)
   }
 
   /**
@@ -362,23 +368,208 @@ export struct AddRecordContent {
   }
 
   /**
-   * 保存按钮 - 橙色大按钮 "完成"
+  // ==================== 自定义数字键盘 ====================
+
+  /**
+   * 自定义键盘（0-9、小数点、删除、加减、完成）
    */
   @Builder
-  buildSaveButton() {
-    Button('完成')
-      .fontSize(18)
-      .fontWeight(FontWeight.Bold)
-      .fontColor(Color.White)
-      .width('90%')
-      .height(50)
-      .borderRadius(25)
-      .backgroundColor('#FF6F00')
-      .shadow({ radius: 8, color: '#40FF6F00', offsetY: 4 })
-      .margin({ top: 32, bottom: 8 })
-      .onClick(() => {
-        this.saveRecord();
-      });
+  buildKeypad() {
+    Column() {
+      // 第 1 行: 1 2 3 ⌫
+      Row() {
+        this.buildKey('1', () => this.onDigit('1'))
+        this.buildKey('2', () => this.onDigit('2'))
+        this.buildKey('3', () => this.onDigit('3'))
+        this.buildKey('⌫', () => this.onDelete(), '#D1D5DB')
+      }
+      // 第 2 行: 4 5 6 +
+      Row() {
+        this.buildKey('4', () => this.onDigit('4'))
+        this.buildKey('5', () => this.onDigit('5'))
+        this.buildKey('6', () => this.onDigit('6'))
+        this.buildKey('+', () => this.onOperator('+'), '#D1D5DB')
+      }
+      // 第 3 行: 7 8 9 -
+      Row() {
+        this.buildKey('7', () => this.onDigit('7'))
+        this.buildKey('8', () => this.onDigit('8'))
+        this.buildKey('9', () => this.onDigit('9'))
+        this.buildKey('-', () => this.onOperator('-'), '#D1D5DB')
+      }
+      // 第 4 行: . 0 完成(×2)
+      Row() {
+        this.buildKey('.', () => this.onDecimal())
+        this.buildKey('0', () => this.onDigit('0'))
+        Button('完成')
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(Color.White)
+          .layoutWeight(2)
+          .height(52)
+          .margin(4)
+          .borderRadius(8)
+          .backgroundColor('#1C1C1E')
+          .onClick(() => this.onDone())
+      }
+    }
+    .width('100%')
+    .backgroundColor('#E8E8EA')
+    .padding({ top: 8, bottom: 16, left: 8, right: 8 })
+  }
+
+  @Builder
+  buildKey(label: string, onClick: () => void, bgColor: string = '#FFFFFF') {
+    Button(label)
+      .fontSize(24)
+      .fontWeight(FontWeight.Medium)
+      .fontColor('#212121')
+      .layoutWeight(1)
+      .height(52)
+      .margin(4)
+      .borderRadius(8)
+      .backgroundColor(bgColor)
+      .onClick(onClick)
+  }
+
+  // ==================== 键盘事件处理 ====================
+
+  /**
+   * 输入数字
+   */
+  private onDigit(digit: string): void {
+    this.amountExpression += digit;
+    this.updatePreview();
+  }
+
+  /**
+   * 输入运算符
+   */
+  private onOperator(op: string): void {
+    if (this.amountExpression === '') {
+      return;
+    }
+    const lastChar = this.amountExpression[this.amountExpression.length - 1];
+    if (lastChar === '+' || lastChar === '-') {
+      // 替换上一个运算符
+      this.amountExpression = this.amountExpression.substring(0, this.amountExpression.length - 1) + op;
+    } else if (lastChar === '.') {
+      // 去掉尾部小数点再追加运算符
+      this.amountExpression = this.amountExpression.substring(0, this.amountExpression.length - 1) + op;
+    } else {
+      this.amountExpression += op;
+    }
+    this.computedPreview = '';
+  }
+
+  /**
+   * 输入小数点
+   */
+  private onDecimal(): void {
+    // 找到最后一个运算符之后的部分
+    let lastOpIndex = -1;
+    for (let i = this.amountExpression.length - 1; i >= 0; i--) {
+      if (this.amountExpression[i] === '+' || this.amountExpression[i] === '-') {
+        lastOpIndex = i;
+        break;
+      }
+    }
+    const currentNum = this.amountExpression.substring(lastOpIndex + 1);
+    // 当前数字已有小数点则忽略
+    if (currentNum.includes('.')) {
+      return;
+    }
+    if (currentNum === '') {
+      this.amountExpression += '0.';
+    } else {
+      this.amountExpression += '.';
+    }
+    this.computedPreview = '';
+  }
+
+  /**
+   * 删除最后一位
+   */
+  private onDelete(): void {
+    if (this.amountExpression.length > 0) {
+      this.amountExpression = this.amountExpression.substring(0, this.amountExpression.length - 1);
+      this.updatePreview();
+    }
+  }
+
+  /**
+   * 点击"完成"：求值并保存
+   */
+  private onDone(): void {
+    let expr = this.amountExpression;
+    if (expr === '') {
+      return;
+    }
+    // 去掉末尾运算符或小数点
+    while (expr.endsWith('+') || expr.endsWith('-') || expr.endsWith('.')) {
+      expr = expr.substring(0, expr.length - 1);
+    }
+    if (expr === '') {
+      return;
+    }
+    const result = this.evaluateExpression(expr);
+    this.amountStr = result.toString();
+    this.saveRecord();
+  }
+
+  /**
+   * 简单加减表达式求值
+   */
+  private evaluateExpression(expr: string): number {
+    let result = 0;
+    let currentNum = '';
+    let currentOp = '+';
+
+    for (let i = 0; i <= expr.length; i++) {
+      const ch = i < expr.length ? expr[i] : '';
+      if (ch === '+' || ch === '-' || i === expr.length) {
+        const num = parseFloat(currentNum) || 0;
+        if (currentOp === '+') {
+          result += num;
+        } else if (currentOp === '-') {
+          result -= num;
+        }
+        currentOp = ch;
+        currentNum = '';
+      } else {
+        currentNum += ch;
+      }
+    }
+    return result;
+  }
+
+  /**
+   * 实时更新计算结果预览
+   */
+  private updatePreview(): void {
+    const expr = this.amountExpression;
+    if (expr === '' || expr.endsWith('+') || expr.endsWith('-') || expr.endsWith('.')) {
+      this.computedPreview = '';
+      return;
+    }
+    // 只有包含运算符时才显示预览
+    if (expr.includes('+') || expr.includes('-')) {
+      const result = this.evaluateExpression(expr);
+      this.computedPreview = this.formatAmount(result);
+    } else {
+      this.computedPreview = '';
+    }
+  }
+
+  /**
+   * 格式化金额显示（去掉尾部多余零）
+   */
+  private formatAmount(n: number): string {
+    let s = n.toFixed(2);
+    if (s.includes('.')) {
+      s = s.replace(/\.?0+$/, '');
+    }
+    return s;
   }
 }
 

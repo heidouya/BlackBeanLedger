@@ -1,9 +1,10 @@
-import { router } from '@kit.ArkUI';
 import { promptAction } from '@kit.ArkUI';
 import { Record } from '../model/RecordModel';
 import { RecordDatabase } from '../database/RecordDatabase';
 import { DateUtil } from '../utils/DateUtil';
 import { getCategoryIcon } from '../constants/CategoryConstants';
+import { AddRecordContent } from './AddRecordPage';
+import { StatsContent } from './StatsPage';
 
 /** 分组后的记录结构 */
 class RecordGroup {
@@ -75,8 +76,6 @@ struct Index {
 
   onPageShow(): void {
     this.loadData();
-    // 从子页面返回时，自动切回明细 Tab
-    this.currentTabIndex = 0;
   }
 
   /**
@@ -173,19 +172,6 @@ struct Index {
     });
   }
 
-  /**
-   * Tab 切换处理：记账/统计跳转子页面
-   */
-  private onTabChange(index: number): void {
-    if (index === 1) {
-      // 记账
-      router.pushUrl({ url: 'pages/AddRecordPage' });
-    } else if (index === 2) {
-      // 统计
-      router.pushUrl({ url: 'pages/StatsPage' });
-    }
-  }
-
   build() {
     Tabs({ index: this.currentTabIndex }) {
       // Tab 0: 明细
@@ -245,21 +231,26 @@ struct Index {
       }
       .tabBar('📋 明细')
 
-      // Tab 1: 记账（点击即跳转）
-      TabContent()
-        .tabBar('✏️ 记账')
+      // Tab 1: 记账
+      TabContent() {
+        AddRecordContent({
+          onSaved: () => {
+            this.currentTabIndex = 0;
+          }
+        })
+      }
+      .tabBar('✏️ 记账')
 
-      // Tab 2: 统计（点击即跳转）
-      TabContent()
-        .tabBar('📊 统计')
+      // Tab 2: 统计
+      TabContent() {
+        StatsContent()
+      }
+      .tabBar('📊 统计')
     }
     .barWidth('100%')
     .barHeight(56)
     .barPosition(BarPosition.End)
     .vertical(false)
-    .onChange((index: number) => {
-      this.onTabChange(index);
-    })
     .width('100%')
     .height('100%')
   }

@@ -64,8 +64,10 @@ struct Index {
   @State monthlyBalance: number = 0;
   @State isRefreshing: boolean = false;
   @State isEmpty: boolean = false;
+  @State currentTabIndex: number = 0;
   private db: RecordDatabase = RecordDatabase.getInstance();
   private dataSource: RecordGroupDataSource = new RecordGroupDataSource();
+  private tabTitles: string[] = ['明细', '记账', '统计'];
 
   aboutToAppear(): void {
     this.loadData();
@@ -73,6 +75,8 @@ struct Index {
 
   onPageShow(): void {
     this.loadData();
+    // 从子页面返回时，自动切回明细 Tab
+    this.currentTabIndex = 0;
   }
 
   /**
@@ -169,91 +173,93 @@ struct Index {
     });
   }
 
+  /**
+   * Tab 切换处理：记账/统计跳转子页面
+   */
+  private onTabChange(index: number): void {
+    if (index === 1) {
+      // 记账
+      router.pushUrl({ url: 'pages/AddRecordPage' });
+    } else if (index === 2) {
+      // 统计
+      router.pushUrl({ url: 'pages/StatsPage' });
+    }
+  }
+
   build() {
-    Stack() {
-      Column() {
-        // 月份标题 + 统计入口
-        Row() {
-          Text(this.monthTitle)
-            .fontSize(18)
-            .fontWeight(FontWeight.Bold)
-            .fontColor('#212121')
-            .layoutWeight(1);
-
-          Text('📊 统计')
-            .fontSize(14)
-            .fontColor('#FF6F00')
-            .padding({ right: 16 })
-            .onClick(() => {
-              router.pushUrl({ url: 'pages/StatsPage' });
-            });
-        }
-        .width('100%')
-        .padding({ left: 16, top: 16, bottom: 12 });
-
-        // 黑色统计卡片
-        this.buildStatsCard();
-
-        // 记录列表
-        Refresh({ refreshing: $$this.isRefreshing }) {
-          List() {
-            if (this.isEmpty) {
-              ListItem() {
-                this.buildEmptyState();
-              }
-            }
-            LazyForEach(this.dataSource, (group: RecordGroup, groupIndex: number) => {
-              ListItemGroup({ header: this.buildGroupHeader(group.dateLabel) }) {
-                ForEach(group.records, (record: Record, recordIndex: number) => {
-                  ListItem() {
-                    this.buildRecordRow(record);
-                  }
-                  .gesture(
-                    LongPressGesture()
-                      .onAction(() => {
-                        this.showDeleteDialog(record);
-                      })
-                  )
-                }, (record: Record) => record.id.toString())
-              }
-            }, (group: RecordGroup, groupIndex: number) => groupIndex.toString())
+    Tabs({ index: this.currentTabIndex }) {
+      // Tab 0: 明细
+      TabContent() {
+        Column() {
+          // 月份标题
+          Row() {
+            Text(this.monthTitle)
+              .fontSize(18)
+              .fontWeight(FontWeight.Bold)
+              .fontColor('#212121')
+              .layoutWeight(1);
           }
           .width('100%')
+          .padding({ left: 16, top: 16, bottom: 12 });
+
+          // 黑色统计卡片
+          this.buildStatsCard();
+
+          // 记录列表
+          Refresh({ refreshing: $$this.isRefreshing }) {
+            List() {
+              if (this.isEmpty) {
+                ListItem() {
+                  this.buildEmptyState();
+                }
+              }
+              LazyForEach(this.dataSource, (group: RecordGroup, groupIndex: number) => {
+                ListItemGroup({ header: this.buildGroupHeader(group.dateLabel) }) {
+                  ForEach(group.records, (record: Record, recordIndex: number) => {
+                    ListItem() {
+                      this.buildRecordRow(record);
+                    }
+                    .gesture(
+                      LongPressGesture()
+                        .onAction(() => {
+                          this.showDeleteDialog(record);
+                        })
+                    )
+                  }, (record: Record) => record.id.toString())
+                }
+              }, (group: RecordGroup, groupIndex: number) => groupIndex.toString())
+            }
+            .width('100%')
+            .layoutWeight(1)
+            .divider({ strokeWidth: 0.5, color: '#F0F0F0', startMargin: 60 })
+          }
+          .onRefreshing(() => {
+            this.onRefresh();
+          })
+          .refreshOffset(64)
           .layoutWeight(1)
-          .divider({ strokeWidth: 0.5, color: '#F0F0F0', startMargin: 60 })
         }
-        .onRefreshing(() => {
-          this.onRefresh();
-        })
-        .refreshOffset(64)
-        .layoutWeight(1)
-
-        // 底部留白给浮动按钮
-        Blank().height(80);
+        .width('100%')
+        .height('100%')
+        .backgroundColor('#F5F5F5')
       }
-      .width('100%')
-      .height('100%')
-      .backgroundColor('#F5F5F5')
+      .tabBar('📋 明细')
 
-      // 浮动"+"按钮 (FAB)
-      Button() {
-        Text('+')
-          .fontSize(32)
-          .fontColor(Color.White)
-          .fontWeight(FontWeight.Bold)
-      }
-      .width(60)
-      .height(60)
-      .borderRadius(30)
-      .backgroundColor('#1C1C1E')
-      .shadow({ radius: 12, color: '#40000000', offsetY: 4 })
-      .position({ x: '50%', y: '100%' })
-      .markAnchor({ x: '50%', y: '100%' })
-      .offset({ x: 0, y: -28 })
-      .onClick(() => {
-        router.pushUrl({ url: 'pages/AddRecordPage' });
-      })
+      // Tab 1: 记账（点击即跳转）
+      TabContent()
+        .tabBar('✏️ 记账')
+
+      // Tab 2: 统计（点击即跳转）
+      TabContent()
+        .tabBar('📊 统计')
     }
+    .barWidth('100%')
+    .barHeight(56)
+    .barPosition(BarPosition.End)
+    .vertical(false)
+    .onChange((index: number) => {
+      this.onTabChange(index);
+    })
     .width('100%')
     .height('100%')
   }
@@ -400,7 +406,7 @@ struct Index {
         .fontSize(16)
         .fontColor('#9E9E9E')
         .margin({ bottom: 4 });
-      Text('点击下方 + 开始记账')
+      Text('点击底部记账 Tab 开始记账')
         .fontSize(14)
         .fontColor('#BDBDBD');
     }

@@ -1,3 +1,4 @@
+import { common, ConfigurationConstant } from '@kit.AbilityKit';
 import { router } from '@kit.ArkUI';
 import { Record } from '../model/RecordModel';
 import { RecordDatabase } from '../database/RecordDatabase';
@@ -30,16 +31,31 @@ export struct StatsContent {
   @State categoryStats: CategoryStat[] = [];
   @State monthTitle: string = '';
   @State isLoading: boolean = true;
+  /** Canvas 环形图空状态背景色（跟随深浅模式） */
+  @State canvasRingBg: string = '#E0E0E0';
   private db: RecordDatabase = RecordDatabase.getInstance();
   private settings: RenderingContextSettings = new RenderingContextSettings(true);
   private ringContext: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.settings);
 
   aboutToAppear(): void {
+    this.updateCanvasColor();
     this.loadStats();
   }
 
   onPageShow(): void {
+    this.updateCanvasColor();
     this.loadStats();
+  }
+
+  /** 根据当前深浅模式更新 Canvas 使用的颜色值 */
+  private updateCanvasColor(): void {
+    try {
+      const ctx: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
+      this.canvasRingBg = ctx.config.colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK ?
+        '#3A3A3C' : '#E0E0E0';
+    } catch (e) {
+      this.canvasRingBg = '#E0E0E0';
+    }
   }
 
   /**
@@ -123,7 +139,7 @@ export struct StatsContent {
       ctx.clearRect(0, 0, 320, 320);
       ctx.beginPath();
       ctx.arc(centerX, centerY, (outerRadius + innerRadius) / 2, 0, 2 * Math.PI);
-      ctx.strokeStyle = '#E0E0E0';
+      ctx.strokeStyle = this.canvasRingBg;
       ctx.lineWidth = lineWidth;
       ctx.lineCap = 'round';
       ctx.stroke();
@@ -179,7 +195,7 @@ export struct StatsContent {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#F5F5F5')
+    .backgroundColor($r('app.color.page_background'))
   }
 
   /**
@@ -194,7 +210,7 @@ export struct StatsContent {
         .borderRadius(16)
         .linearGradient({
           direction: GradientDirection.Bottom,
-          colors: [['#2C2C2E', 0], ['#1C1C1E', 1]]
+          colors: [[$r('app.color.dark_card_gradient_start'), 0], [$r('app.color.dark_card_background'), 1]]
         });
 
       Row() {
@@ -202,12 +218,12 @@ export struct StatsContent {
         Column() {
           Text('总支出')
             .fontSize(12)
-            .fontColor('#AAFFFFFF')
+            .fontColor($r('app.color.text_on_dark_secondary'))
             .margin({ bottom: 4 });
           Text('¥' + this.formatAmount(this.totalExpense))
             .fontSize(22)
             .fontWeight(FontWeight.Bold)
-            .fontColor('#FF5252');
+            .fontColor($r('app.color.expense_red'));
         }
         .alignItems(HorizontalAlign.Center)
         .layoutWeight(1);
@@ -216,18 +232,18 @@ export struct StatsContent {
         Divider()
           .vertical(true)
           .height(40)
-          .color('#40FFFFFF');
+          .color($r('app.color.divider_on_dark'));
 
         // 总收入
         Column() {
           Text('总收入')
             .fontSize(12)
-            .fontColor('#AAFFFFFF')
+            .fontColor($r('app.color.text_on_dark_secondary'))
             .margin({ bottom: 4 });
           Text('¥' + this.formatAmount(this.totalIncome))
             .fontSize(22)
             .fontWeight(FontWeight.Bold)
-            .fontColor('#4CAF50');
+            .fontColor($r('app.color.income_green'));
         }
         .alignItems(HorizontalAlign.Center)
         .layoutWeight(1);
@@ -236,18 +252,18 @@ export struct StatsContent {
         Divider()
           .vertical(true)
           .height(40)
-          .color('#40FFFFFF');
+          .color($r('app.color.divider_on_dark'));
 
         // 结余
         Column() {
           Text('结余')
             .fontSize(12)
-            .fontColor('#AAFFFFFF')
+            .fontColor($r('app.color.text_on_dark_secondary'))
             .margin({ bottom: 4 });
           Text('¥' + this.formatAmount(this.totalIncome - this.totalExpense))
             .fontSize(22)
             .fontWeight(FontWeight.Bold)
-            .fontColor('#FFFFFFFF');
+            .fontColor($r('app.color.text_on_dark'));
         }
         .alignItems(HorizontalAlign.Center)
         .layoutWeight(1);
@@ -269,7 +285,7 @@ export struct StatsContent {
       Text(this.monthTitle + ' 支出分布')
         .fontSize(15)
         .fontWeight(FontWeight.Medium)
-        .fontColor('#212121')
+        .fontColor($r('app.color.text_primary'))
         .margin({ top: 12, bottom: 8 });
 
       if (this.categoryStats.length === 0) {
@@ -280,12 +296,12 @@ export struct StatsContent {
             .margin({ bottom: 8 });
           Text('本月暂无支出记录')
             .fontSize(14)
-            .fontColor('#9E9E9E');
+            .fontColor($r('app.color.text_secondary'));
         }
         .width('100%')
         .height(220)
         .justifyContent(FlexAlign.Center)
-        .backgroundColor(Color.White)
+        .backgroundColor($r('app.color.card_background'))
         .borderRadius(12);
       } else {
         Stack() {
@@ -298,11 +314,11 @@ export struct StatsContent {
           Column() {
             Text('总支出')
               .fontSize(12)
-              .fontColor('#9E9E9E');
+              .fontColor($r('app.color.text_secondary'));
             Text('¥' + this.formatAmount(this.totalExpense))
               .fontSize(20)
               .fontWeight(FontWeight.Bold)
-              .fontColor('#212121')
+              .fontColor($r('app.color.text_primary'))
               .maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis });
           }
@@ -312,7 +328,7 @@ export struct StatsContent {
         }
         .width('100%')
         .height(320)
-        .backgroundColor(Color.White)
+        .backgroundColor($r('app.color.card_background'))
         .borderRadius(12);
       }
     }
@@ -329,7 +345,7 @@ export struct StatsContent {
       Text('分类排行')
         .fontSize(15)
         .fontWeight(FontWeight.Medium)
-        .fontColor('#212121')
+        .fontColor($r('app.color.text_primary'))
         .margin({ top: 4, bottom: 8 })
         .padding({ left: 2 });
 
@@ -341,14 +357,14 @@ export struct StatsContent {
         if (this.categoryStats.length === 0) {
           Text('暂无数据')
             .fontSize(14)
-            .fontColor('#9E9E9E')
+            .fontColor($r('app.color.text_secondary'))
             .width('100%')
             .padding({ top: 30, bottom: 30 })
             .textAlign(TextAlign.Center);
         }
       }
       .width('100%')
-      .backgroundColor(Color.White)
+      .backgroundColor($r('app.color.card_background'))
       .borderRadius(12);
     }
     .width('100%')
@@ -365,7 +381,7 @@ export struct StatsContent {
       Text(`${index + 1}`)
         .fontSize(14)
         .fontWeight(FontWeight.Bold)
-        .fontColor(index < 3 ? '#FF6F00' : '#9E9E9E')
+        .fontColor(index < 3 ? $r('app.color.accent_orange') : $r('app.color.text_secondary'))
         .width(24);
 
       // 图标
@@ -379,14 +395,14 @@ export struct StatsContent {
           Text(stat.name)
             .fontSize(15)
             .fontWeight(FontWeight.Medium)
-            .fontColor('#212121');
+            .fontColor($r('app.color.text_primary'));
 
           Blank();
 
           Text('¥' + stat.amount.toFixed(2))
             .fontSize(14)
             .fontWeight(FontWeight.Medium)
-            .fontColor('#212121');
+            .fontColor($r('app.color.text_primary'));
         }
         .width('100%')
         .margin({ bottom: 4 });
@@ -398,7 +414,7 @@ export struct StatsContent {
             .width('100%')
             .height(6)
             .borderRadius(3)
-            .backgroundColor('#F0F0F0');
+            .backgroundColor($r('app.color.progress_track'));
 
           // 进度条
           Row()
@@ -411,7 +427,7 @@ export struct StatsContent {
 
         Text(stat.percent.toFixed(1) + '%')
           .fontSize(11)
-          .fontColor('#9E9E9E')
+          .fontColor($r('app.color.text_secondary'))
           .margin({ top: 2 });
       }
       .layoutWeight(1);
@@ -442,16 +458,29 @@ struct StatsPage {
   @State categoryStats: CategoryStat[] = [];
   @State monthTitle: string = '';
   @State isLoading: boolean = true;
+  @State canvasRingBg: string = '#E0E0E0';
   private db: RecordDatabase = RecordDatabase.getInstance();
   private settings: RenderingContextSettings = new RenderingContextSettings(true);
   private ringContext: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.settings);
 
   aboutToAppear(): void {
+    this.updateCanvasColor();
     this.loadStats();
   }
 
   onPageShow(): void {
+    this.updateCanvasColor();
     this.loadStats();
+  }
+
+  private updateCanvasColor(): void {
+    try {
+      const ctx: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
+      this.canvasRingBg = ctx.config.colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK ?
+        '#3A3A3C' : '#E0E0E0';
+    } catch (e) {
+      this.canvasRingBg = '#E0E0E0';
+    }
   }
 
   async loadStats(): Promise<void> {
@@ -508,7 +537,7 @@ struct StatsPage {
       ctx.clearRect(0, 0, 320, 320);
       ctx.beginPath();
       ctx.arc(centerX, centerY, (outerRadius + innerRadius) / 2, 0, 2 * Math.PI);
-      ctx.strokeStyle = '#E0E0E0';
+      ctx.strokeStyle = this.canvasRingBg;
       ctx.lineWidth = lineWidth;
       ctx.lineCap = 'round';
       ctx.stroke();
@@ -543,7 +572,7 @@ struct StatsPage {
       // 导航栏
       Row() {
         Button() {
-          Text('←').fontSize(22).fontColor('#212121');
+          Text('←').fontSize(22).fontColor($r('app.color.text_primary'));
         }
         .type(ButtonType.Circle)
         .backgroundColor(Color.Transparent)
@@ -553,7 +582,7 @@ struct StatsPage {
         Text('月度统计')
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#212121')
+          .fontColor($r('app.color.text_primary'))
           .layoutWeight(1)
           .textAlign(TextAlign.Center);
 
@@ -562,77 +591,94 @@ struct StatsPage {
       .width('100%')
       .height(56)
       .padding({ left: 8, right: 8 })
-      .backgroundColor(Color.White);
+      .backgroundColor($r('app.color.card_background'));
 
       Scroll() {
         Column() {
           // 月度总览
           Stack() {
             Column().width('100%').height(100).borderRadius(16)
-              .linearGradient({ direction: GradientDirection.Bottom, colors: [['#2C2C2E', 0], ['#1C1C1E', 1]] });
+              .linearGradient({ direction: GradientDirection.Bottom,
+                colors: [[$r('app.color.dark_card_gradient_start'), 0], [$r('app.color.dark_card_background'), 1]] });
             Row() {
               Column() {
-                Text('总支出').fontSize(12).fontColor('#AAFFFFFF').margin({ bottom: 4 });
-                Text('¥' + this.formatAmount(this.totalExpense)).fontSize(22).fontWeight(FontWeight.Bold).fontColor('#FF5252');
+                Text('总支出').fontSize(12).fontColor($r('app.color.text_on_dark_secondary')).margin({ bottom: 4 });
+                Text('¥' + this.formatAmount(this.totalExpense)).fontSize(22).fontWeight(FontWeight.Bold)
+                  .fontColor($r('app.color.expense_red'));
               }.alignItems(HorizontalAlign.Center).layoutWeight(1);
-              Divider().vertical(true).height(40).color('#40FFFFFF');
+              Divider().vertical(true).height(40).color($r('app.color.divider_on_dark'));
               Column() {
-                Text('总收入').fontSize(12).fontColor('#AAFFFFFF').margin({ bottom: 4 });
-                Text('¥' + this.formatAmount(this.totalIncome)).fontSize(22).fontWeight(FontWeight.Bold).fontColor('#4CAF50');
+                Text('总收入').fontSize(12).fontColor($r('app.color.text_on_dark_secondary')).margin({ bottom: 4 });
+                Text('¥' + this.formatAmount(this.totalIncome)).fontSize(22).fontWeight(FontWeight.Bold)
+                  .fontColor($r('app.color.income_green'));
               }.alignItems(HorizontalAlign.Center).layoutWeight(1);
-              Divider().vertical(true).height(40).color('#40FFFFFF');
+              Divider().vertical(true).height(40).color($r('app.color.divider_on_dark'));
               Column() {
-                Text('结余').fontSize(12).fontColor('#AAFFFFFF').margin({ bottom: 4 });
-                Text('¥' + this.formatAmount(this.totalIncome - this.totalExpense)).fontSize(22).fontWeight(FontWeight.Bold).fontColor('#FFFFFFFF');
+                Text('结余').fontSize(12).fontColor($r('app.color.text_on_dark_secondary')).margin({ bottom: 4 });
+                Text('¥' + this.formatAmount(this.totalIncome - this.totalExpense)).fontSize(22)
+                  .fontWeight(FontWeight.Bold).fontColor($r('app.color.text_on_dark'));
               }.alignItems(HorizontalAlign.Center).layoutWeight(1);
             }.width('100%').height(100).padding({ left: 12, right: 12 });
           }.width('100%').padding({ left: 16, right: 16, top: 16, bottom: 4 });
 
           // 环形图
           Column() {
-            Text(this.monthTitle + ' 支出分布').fontSize(15).fontWeight(FontWeight.Medium).fontColor('#212121').margin({ top: 12, bottom: 8 });
+            Text(this.monthTitle + ' 支出分布').fontSize(15).fontWeight(FontWeight.Medium)
+              .fontColor($r('app.color.text_primary')).margin({ top: 12, bottom: 8 });
             if (this.categoryStats.length === 0) {
               Column() {
                 Text('📊').fontSize(48).margin({ bottom: 8 });
-                Text('本月暂无支出记录').fontSize(14).fontColor('#9E9E9E');
-              }.width('100%').height(220).justifyContent(FlexAlign.Center).backgroundColor(Color.White).borderRadius(12);
+                Text('本月暂无支出记录').fontSize(14).fontColor($r('app.color.text_secondary'));
+              }.width('100%').height(220).justifyContent(FlexAlign.Center)
+                .backgroundColor($r('app.color.card_background')).borderRadius(12);
             } else {
               Stack() {
                 Canvas(this.ringContext).width(320).height(320).backgroundColor(Color.Transparent);
                 Column() {
-                  Text('总支出').fontSize(12).fontColor('#9E9E9E');
-                  Text('¥' + this.formatAmount(this.totalExpense)).fontSize(20).fontWeight(FontWeight.Bold).fontColor('#212121').maxLines(1).textOverflow({ overflow: TextOverflow.Ellipsis });
+                  Text('总支出').fontSize(12).fontColor($r('app.color.text_secondary'));
+                  Text('¥' + this.formatAmount(this.totalExpense)).fontSize(20).fontWeight(FontWeight.Bold)
+                    .fontColor($r('app.color.text_primary')).maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis });
                 }.width(140).position({ x: '50%', y: '50%' }).markAnchor({ x: '50%', y: '50%' });
-              }.width('100%').height(320).backgroundColor(Color.White).borderRadius(12);
+              }.width('100%').height(320)
+                .backgroundColor($r('app.color.card_background')).borderRadius(12);
             }
           }.width('100%').padding({ left: 16, right: 16, bottom: 12 });
 
           // 分类排行
           Column() {
-            Text('分类排行').fontSize(15).fontWeight(FontWeight.Medium).fontColor('#212121').margin({ top: 4, bottom: 8 }).padding({ left: 2 });
+            Text('分类排行').fontSize(15).fontWeight(FontWeight.Medium)
+              .fontColor($r('app.color.text_primary')).margin({ top: 4, bottom: 8 }).padding({ left: 2 });
             Column() {
               ForEach(this.categoryStats, (stat: CategoryStat, index: number) => {
                 Row() {
-                  Text(`${index + 1}`).fontSize(14).fontWeight(FontWeight.Bold).fontColor(index < 3 ? '#FF6F00' : '#9E9E9E').width(24);
+                  Text(`${index + 1}`).fontSize(14).fontWeight(FontWeight.Bold)
+                    .fontColor(index < 3 ? $r('app.color.accent_orange') : $r('app.color.text_secondary')).width(24);
                   Text(stat.icon).fontSize(20).margin({ left: 8, right: 10 });
                   Column() {
                     Row() {
-                      Text(stat.name).fontSize(15).fontWeight(FontWeight.Medium).fontColor('#212121');
+                      Text(stat.name).fontSize(15).fontWeight(FontWeight.Medium)
+                        .fontColor($r('app.color.text_primary'));
                       Blank();
-                      Text('¥' + stat.amount.toFixed(2)).fontSize(14).fontWeight(FontWeight.Medium).fontColor('#212121');
+                      Text('¥' + stat.amount.toFixed(2)).fontSize(14).fontWeight(FontWeight.Medium)
+                        .fontColor($r('app.color.text_primary'));
                     }.width('100%').margin({ bottom: 4 });
                     Stack() {
-                      Row().width('100%').height(6).borderRadius(3).backgroundColor('#F0F0F0');
-                      Row().width(`${Math.min(stat.percent, 100)}%`).height(6).borderRadius(3).backgroundColor(stat.color);
+                      Row().width('100%').height(6).borderRadius(3)
+                        .backgroundColor($r('app.color.progress_track'));
+                      Row().width(`${Math.min(stat.percent, 100)}%`).height(6).borderRadius(3)
+                        .backgroundColor(stat.color);
                     }.width('100%');
-                    Text(stat.percent.toFixed(1) + '%').fontSize(11).fontColor('#9E9E9E').margin({ top: 2 });
+                    Text(stat.percent.toFixed(1) + '%').fontSize(11)
+                      .fontColor($r('app.color.text_secondary')).margin({ top: 2 });
                   }.layoutWeight(1);
                 }.width('100%').padding({ left: 16, right: 16, top: 14, bottom: 14 });
               }, (stat: CategoryStat) => stat.name);
               if (this.categoryStats.length === 0) {
-                Text('暂无数据').fontSize(14).fontColor('#9E9E9E').width('100%').padding({ top: 30, bottom: 30 }).textAlign(TextAlign.Center);
+                Text('暂无数据').fontSize(14).fontColor($r('app.color.text_secondary'))
+                  .width('100%').padding({ top: 30, bottom: 30 }).textAlign(TextAlign.Center);
               }
-            }.width('100%').backgroundColor(Color.White).borderRadius(12);
+            }.width('100%').backgroundColor($r('app.color.card_background')).borderRadius(12);
           }.width('100%').padding({ left: 16, right: 16 });
 
           Blank().height(32);
@@ -644,6 +690,6 @@ struct StatsPage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#F5F5F5')
+    .backgroundColor($r('app.color.page_background'))
   }
 }

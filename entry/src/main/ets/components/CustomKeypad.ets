@@ -15,21 +15,21 @@ export struct CustomKeypad {
         this.keyBtn('1', () => this.onDigit('1'))
         this.keyBtn('2', () => this.onDigit('2'))
         this.keyBtn('3', () => this.onDigit('3'))
-        this.keyBtn('⌫', () => this.onDelete(), '#D1D5DB')
+        this.keyBtn('⌫', () => this.onDelete(), $r('app.color.keypad_secondary_btn_bg'))
       }
       // 第 2 行: 4 5 6 +
       Row() {
         this.keyBtn('4', () => this.onDigit('4'))
         this.keyBtn('5', () => this.onDigit('5'))
         this.keyBtn('6', () => this.onDigit('6'))
-        this.keyBtn('+', () => this.onOperator('+'), '#D1D5DB')
+        this.keyBtn('+', () => this.onOperator('+'), $r('app.color.keypad_secondary_btn_bg'))
       }
       // 第 3 行: 7 8 9 -
       Row() {
         this.keyBtn('7', () => this.onDigit('7'))
         this.keyBtn('8', () => this.onDigit('8'))
         this.keyBtn('9', () => this.onDigit('9'))
-        this.keyBtn('-', () => this.onOperator('-'), '#D1D5DB')
+        this.keyBtn('-', () => this.onOperator('-'), $r('app.color.keypad_secondary_btn_bg'))
       }
       // 第 4 行: . 0 完成(×2)
       Row() {
@@ -38,31 +38,31 @@ export struct CustomKeypad {
         Button('完成')
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
-          .fontColor(Color.White)
+          .fontColor($r('app.color.card_background'))
           .layoutWeight(2)
           .height(52)
           .margin(4)
           .borderRadius(8)
-          .backgroundColor('#1C1C1E')
+          .backgroundColor($r('app.color.dark_card_background'))
           .onClick(() => this.onDone())
       }
     }
     .width('100%')
-    .backgroundColor('#E8E8EA')
+    .backgroundColor($r('app.color.keypad_background'))
     .padding({ top: 8, bottom: 16, left: 8, right: 8 })
   }
 
   @Builder
-  keyBtn(label: string, onClick: () => void, bgColor: string = '#FFFFFF') {
+  keyBtn(label: string, onClick: () => void, bgColor?: ResourceColor) {
     Button(label)
       .fontSize(24)
       .fontWeight(FontWeight.Medium)
-      .fontColor('#212121')
+      .fontColor($r('app.color.keypad_btn_text'))
       .layoutWeight(1)
       .height(52)
       .margin(4)
       .borderRadius(8)
-      .backgroundColor(bgColor)
+      .backgroundColor(bgColor ?? $r('app.color.keypad_btn_background'))
       .onClick(onClick)
   }
 

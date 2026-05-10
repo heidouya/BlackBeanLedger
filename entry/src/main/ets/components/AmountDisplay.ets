@@ -12,13 +12,13 @@ export struct AmountDisplay {
         Text('¥')
           .fontSize(36)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#212121')
+          .fontColor($r('app.color.text_primary'))
           .margin({ right: 4 });
 
         Text(this.expression || '0')
           .fontSize(48)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#212121')
+          .fontColor($r('app.color.text_primary'))
           .textAlign(TextAlign.Start)
           .layoutWeight(1)
           .maxLines(1)
@@ -31,14 +31,14 @@ export struct AmountDisplay {
       if (this.preview !== '') {
         Text(`= ${this.preview}`)
           .fontSize(22)
-          .fontColor('#9E9E9E')
+          .fontColor($r('app.color.text_secondary'))
           .width('100%')
           .padding({ top: 6 });
       }
     }
     .width('100%')
     .padding({ left: 24, right: 24, top: 20, bottom: 20 })
-    .backgroundColor(Color.White)
+    .backgroundColor($r('app.color.card_background'))
     .alignItems(HorizontalAlign.Start)
   }
 }

@@ -53,7 +53,7 @@ struct DarkModePage {
       // 导航栏
       Row() {
         Button() {
-          Text('←').fontSize(22).fontColor('#212121');
+          Text('←').fontSize(22).fontColor($r('app.color.text_primary'));
         }
         .type(ButtonType.Circle)
         .backgroundColor(Color.Transparent)
@@ -63,7 +63,7 @@ struct DarkModePage {
         Text('深色模式')
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#212121')
+          .fontColor($r('app.color.text_primary'))
           .layoutWeight(1)
           .textAlign(TextAlign.Center);
 
@@ -72,7 +72,7 @@ struct DarkModePage {
       .width('100%')
       .height(56)
       .padding({ left: 8, right: 8 })
-      .backgroundColor(Color.White);
+      .backgroundColor($r('app.color.card_background'));
 
       // 选项列表
       List() {
@@ -83,11 +83,11 @@ struct DarkModePage {
                 Text(option.label)
                   .fontSize(16)
                   .fontWeight(FontWeight.Medium)
-                  .fontColor('#212121');
+                  .fontColor($r('app.color.text_primary'));
 
                 Text(option.desc)
                   .fontSize(12)
-                  .fontColor('#9E9E9E')
+                  .fontColor($r('app.color.text_secondary'))
                   .margin({ top: 4 });
               }
               .alignItems(HorizontalAlign.Start)
@@ -96,7 +96,7 @@ struct DarkModePage {
               // 选中标记
               Text(this.selectedMode === option.mode ? '✓' : '')
                 .fontSize(20)
-                .fontColor('#007AFF')
+                .fontColor($r('app.color.accent_blue'))
                 .margin({ left: 12 });
             }
             .width('100%')
@@ -104,22 +104,14 @@ struct DarkModePage {
           }
           .onClick(() => { this.onSelect(option.mode); });
         }, (option: ModeOption) => option.mode);
-
-        ListItem() {
-          Row()
-            .width('100%')
-            .height(0.5)
-            .backgroundColor('#F0F0F0')
-            .margin({ left: 16 });
-        }
       }
       .width('100%')
       .layoutWeight(1)
-      .backgroundColor(Color.White)
-      .divider({ strokeWidth: 0.5, color: '#F0F0F0', startMargin: 16 });
+      .backgroundColor($r('app.color.card_background'))
+      .divider({ strokeWidth: 0.5, color: $r('app.color.divider'), startMargin: 16 });
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#F5F5F5');
+    .backgroundColor($r('app.color.page_background'));
   }
 }

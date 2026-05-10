@@ -178,7 +178,7 @@ struct Index {
               Text(this.monthTitle)
                 .fontSize(18)
                 .fontWeight(FontWeight.Bold)
-                .fontColor('#212121')
+                .fontColor($r('app.color.text_primary'))
                 .layoutWeight(1);
 
               Button() {
@@ -224,7 +224,7 @@ struct Index {
               }
               .width('100%')
               .layoutWeight(1)
-              .divider({ strokeWidth: 0.5, color: '#F0F0F0', startMargin: 60 })
+              .divider({ strokeWidth: 0.5, color: $r('app.color.divider'), startMargin: 60 })
             }
             .onRefreshing(() => {
               this.onRefresh();
@@ -239,13 +239,13 @@ struct Index {
           Button() {
             Text('+')
               .fontSize(32)
-              .fontColor(Color.White)
+              .fontColor($r('app.color.text_on_dark'))
           }
           .type(ButtonType.Circle)
           .width(56)
           .height(56)
-          .backgroundColor('#1C1C1E')
-          .shadow({ radius: 12, color: '#601C1C1E', offsetY: 4 })
+          .backgroundColor($r('app.color.dark_card_background'))
+          .shadow({ radius: 12, color: $r('app.color.shadow_color'), offsetY: 4 })
           .margin({ bottom: 16 })
           .onClick(() => {
             this.addDialogController.open();
@@ -253,7 +253,7 @@ struct Index {
         }
         .width('100%')
         .height('100%')
-        .backgroundColor('#F5F5F5')
+        .backgroundColor($r('app.color.page_background'))
       }
       .tabBar('📋 明细')
 
@@ -273,7 +273,6 @@ struct Index {
 
   /**
    * 黑色渐变统计卡片
-   * 背景色 #1C1C1E，圆角 16vp
    */
   @Builder
   buildStatsCard() {
@@ -285,7 +284,7 @@ struct Index {
         .borderRadius(16)
         .linearGradient({
           direction: GradientDirection.Bottom,
-          colors: [['#2C2C2E', 0], ['#1C1C1E', 1]]
+          colors: [[$r('app.color.dark_card_gradient_start'), 0], [$r('app.color.dark_card_background'), 1]]
         });
 
       // 内容层
@@ -294,7 +293,7 @@ struct Index {
         Text('¥' + this.formatAmount(this.monthlyBalance))
           .fontSize(36)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#FFFFFFFF')
+          .fontColor($r('app.color.text_on_dark'))
           .fontFamily('HarmonyOS Sans')
           .margin({ bottom: 12 });
 
@@ -304,12 +303,12 @@ struct Index {
           Column() {
             Text('收入')
               .fontSize(12)
-              .fontColor('#AAFFFFFF')
+              .fontColor($r('app.color.text_on_dark_secondary'))
               .margin({ bottom: 2 });
             Text('¥' + this.formatAmount(this.monthlyIncome))
               .fontSize(18)
               .fontWeight(FontWeight.Bold)
-              .fontColor('#4CAF50');
+              .fontColor($r('app.color.income_green'));
           }
           .alignItems(HorizontalAlign.Start);
 
@@ -319,12 +318,12 @@ struct Index {
           Column() {
             Text('支出')
               .fontSize(12)
-              .fontColor('#AAFFFFFF')
+              .fontColor($r('app.color.text_on_dark_secondary'))
               .margin({ bottom: 2 });
             Text('¥' + this.formatAmount(this.monthlyExpense))
               .fontSize(18)
               .fontWeight(FontWeight.Bold)
-              .fontColor('#FF5252');
+              .fontColor($r('app.color.expense_red'));
           }
           .alignItems(HorizontalAlign.End);
         }
@@ -346,10 +345,10 @@ struct Index {
   buildGroupHeader(label: string) {
     Text(label)
       .fontSize(13)
-      .fontColor('#9E9E9E')
+      .fontColor($r('app.color.text_secondary'))
       .fontWeight(FontWeight.Medium)
       .padding({ left: 16, top: 14, bottom: 6 })
-      .backgroundColor('#F5F5F5')
+      .backgroundColor($r('app.color.page_background'))
   }
 
   /**
@@ -366,7 +365,9 @@ struct Index {
       .width(42)
       .height(42)
       .borderRadius(21)
-      .backgroundColor(record.type === 'expense' ? '#FFF0F0' : '#F0FFF0')
+      .backgroundColor(record.type === 'expense' ?
+        $r('app.color.category_bg_expense') :
+        $r('app.color.category_bg_income'))
       .margin({ right: 12 });
 
       // 分类名和备注
@@ -374,11 +375,11 @@ struct Index {
         Text(record.category)
           .fontSize(16)
           .fontWeight(FontWeight.Medium)
-          .fontColor('#212121');
+          .fontColor($r('app.color.text_primary'));
         if (record.note) {
           Text(record.note)
             .fontSize(12)
-            .fontColor('#9E9E9E')
+            .fontColor($r('app.color.text_secondary'))
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .margin({ top: 2 });
@@ -391,12 +392,14 @@ struct Index {
       Text(`${record.type === 'expense' ? '-' : '+'}¥${record.amount.toFixed(2)}`)
         .fontSize(18)
         .fontWeight(FontWeight.Bold)
-        .fontColor(record.type === 'expense' ? '#FF5252' : '#4CAF50');
+        .fontColor(record.type === 'expense' ?
+          $r('app.color.expense_red') :
+          $r('app.color.income_green'));
     }
     .width('100%')
     .height(64)
     .padding({ left: 16, right: 16 })
-    .backgroundColor(Color.White)
+    .backgroundColor($r('app.color.card_background'))
     .alignItems(VerticalAlign.Center)
   }
 
@@ -411,11 +414,11 @@ struct Index {
         .margin({ bottom: 16 });
       Text('暂无记录')
         .fontSize(16)
-        .fontColor('#9E9E9E')
+        .fontColor($r('app.color.text_secondary'))
         .margin({ bottom: 4 });
       Text('点击右下角 + 按钮开始记账')
         .fontSize(14)
-        .fontColor('#BDBDBD');
+        .fontColor($r('app.color.text_light'));
     }
     .width('100%')
     .height(300)
@@ -455,6 +458,6 @@ struct AddRecordDialog {
     .width('100%')
     .height('80%')
     .borderRadius({ topLeft: 20, topRight: 20 })
-    .backgroundColor('#F5F5F5')
+    .backgroundColor($r('app.color.page_background'))
   }
 }

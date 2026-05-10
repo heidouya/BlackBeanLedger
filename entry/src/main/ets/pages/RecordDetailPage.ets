@@ -60,7 +60,7 @@ struct RecordDetailPage {
       },
       secondaryButton: {
         value: '删除',
-        fontColor: '#FF5252',
+        fontColor: $r('app.color.expense_red'),
         action: () => {
           this.deleteRecord();
         }
@@ -86,7 +86,7 @@ struct RecordDetailPage {
       // 导航栏
       Row() {
         Button() {
-          Text('←').fontSize(22).fontColor('#212121');
+          Text('←').fontSize(22).fontColor($r('app.color.text_primary'));
         }
         .type(ButtonType.Circle)
         .backgroundColor(Color.Transparent)
@@ -97,7 +97,7 @@ struct RecordDetailPage {
         Text('明细详情')
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#212121')
+          .fontColor($r('app.color.text_primary'))
           .layoutWeight(1)
           .textAlign(TextAlign.Center);
 
@@ -106,7 +106,7 @@ struct RecordDetailPage {
       .width('100%')
       .height(56)
       .padding({ left: 8, right: 8 })
-      .backgroundColor(Color.White);
+      .backgroundColor($r('app.color.card_background'));
 
       if (this.record) {
         this.buildContent();
@@ -114,7 +114,7 @@ struct RecordDetailPage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#F5F5F5')
+    .backgroundColor($r('app.color.page_background'))
   }
 
   @Builder
@@ -131,17 +131,19 @@ struct RecordDetailPage {
           .width(64)
           .height(64)
           .borderRadius(32)
-          .backgroundColor(this.record!.type === 'expense' ? '#FFF0F0' : '#F0FFF0')
+          .backgroundColor(this.record!.type === 'expense' ?
+            $r('app.color.category_bg_expense') :
+            $r('app.color.category_bg_income'))
           .margin({ right: 16 });
 
           Column() {
             Text(this.record!.category)
               .fontSize(20)
               .fontWeight(FontWeight.Bold)
-              .fontColor('#212121');
+              .fontColor($r('app.color.text_primary'));
             Text(this.record!.type === 'expense' ? '支出' : '收入')
               .fontSize(13)
-              .fontColor('#9E9E9E')
+              .fontColor($r('app.color.text_secondary'))
               .margin({ top: 4 });
           }
           .alignItems(HorizontalAlign.Start)
@@ -154,13 +156,15 @@ struct RecordDetailPage {
         Text(`${this.record!.type === 'expense' ? '-' : '+'}¥${this.record!.amount.toFixed(2)}`)
           .fontSize(42)
           .fontWeight(FontWeight.Bold)
-          .fontColor(this.record!.type === 'expense' ? '#FF5252' : '#4CAF50')
+          .fontColor(this.record!.type === 'expense' ?
+            $r('app.color.expense_red') :
+            $r('app.color.income_green'))
           .width('100%')
           .textAlign(TextAlign.Center)
           .margin({ bottom: 24 });
 
         // 分割线
-        Divider().color('#F0F0F0').margin({ bottom: 20 });
+        Divider().color($r('app.color.divider')).margin({ bottom: 20 });
 
         // 详情信息
         this.buildInfoRow('日期', DateUtil.formatDateDisplay(this.record!.date));
@@ -172,7 +176,7 @@ struct RecordDetailPage {
       }
       .width('100%')
       .padding(20)
-      .backgroundColor(Color.White)
+      .backgroundColor($r('app.color.card_background'))
       .borderRadius(12)
       .margin(16);
 
@@ -187,7 +191,7 @@ struct RecordDetailPage {
           .layoutWeight(1)
           .height(48)
           .borderRadius(12)
-          .backgroundColor('#4CAF50')
+          .backgroundColor($r('app.color.income_green'))
           .margin({ right: 6 })
           .onClick(() => { this.onEdit(); });
 
@@ -198,7 +202,7 @@ struct RecordDetailPage {
           .layoutWeight(1)
           .height(48)
           .borderRadius(12)
-          .backgroundColor('#FF5252')
+          .backgroundColor($r('app.color.expense_red'))
           .margin({ left: 6 })
           .onClick(() => { this.showDeleteDialog(); });
       }
@@ -214,12 +218,12 @@ struct RecordDetailPage {
     Row() {
       Text(label)
         .fontSize(14)
-        .fontColor('#9E9E9E')
+        .fontColor($r('app.color.text_secondary'))
         .width(60);
 
       Text(value)
         .fontSize(14)
-        .fontColor('#212121')
+        .fontColor($r('app.color.text_primary'))
         .layoutWeight(1);
     }
     .width('100%')

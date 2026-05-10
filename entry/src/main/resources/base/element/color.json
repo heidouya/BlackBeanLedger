@@ -3,6 +3,126 @@
     {
       "name": "start_window_background",
       "value": "#FFFFFF"
+    },
+    {
+      "name": "page_background",
+      "value": "#F5F5F5"
+    },
+    {
+      "name": "card_background",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "dark_card_background",
+      "value": "#1C1C1E"
+    },
+    {
+      "name": "dark_card_gradient_start",
+      "value": "#2C2C2E"
+    },
+    {
+      "name": "text_primary",
+      "value": "#212121"
+    },
+    {
+      "name": "text_secondary",
+      "value": "#9E9E9E"
+    },
+    {
+      "name": "text_medium",
+      "value": "#424242"
+    },
+    {
+      "name": "text_light",
+      "value": "#BDBDBD"
+    },
+    {
+      "name": "text_on_dark",
+      "value": "#FFFFFFFF"
+    },
+    {
+      "name": "text_on_dark_secondary",
+      "value": "#AAFFFFFF"
+    },
+    {
+      "name": "divider",
+      "value": "#F0F0F0"
+    },
+    {
+      "name": "divider_on_dark",
+      "value": "#40FFFFFF"
+    },
+    {
+      "name": "accent_orange",
+      "value": "#FF6F00"
+    },
+    {
+      "name": "expense_red",
+      "value": "#FF5252"
+    },
+    {
+      "name": "income_green",
+      "value": "#4CAF50"
+    },
+    {
+      "name": "accent_blue",
+      "value": "#007AFF"
+    },
+    {
+      "name": "category_bg_expense",
+      "value": "#FFF0F0"
+    },
+    {
+      "name": "category_bg_income",
+      "value": "#F0FFF0"
+    },
+    {
+      "name": "category_bg_selected",
+      "value": "#FFF3E0"
+    },
+    {
+      "name": "category_text_selected",
+      "value": "#FF6F00"
+    },
+    {
+      "name": "category_text_unselected",
+      "value": "#757575"
+    },
+    {
+      "name": "keypad_background",
+      "value": "#E8E8EA"
+    },
+    {
+      "name": "keypad_btn_background",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "keypad_btn_text",
+      "value": "#212121"
+    },
+    {
+      "name": "keypad_dark_btn_bg",
+      "value": "#1C1C1E"
+    },
+    {
+      "name": "keypad_secondary_btn_bg",
+      "value": "#D1D5DB"
+    },
+    {
+      "name": "progress_track",
+      "value": "#F0F0F0"
+    },
+    {
+      "name": "canvas_ring_bg",
+      "value": "#E0E0E0"
+    },
+    {
+      "name": "arrow_chevron",
+      "value": "#C0C0C0"
+    },
+    {
+      "name": "shadow_color",
+      "value": "#601C1C1E"
     }
   ]
 }

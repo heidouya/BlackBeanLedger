@@ -35,7 +35,7 @@ struct SettingsPage {
       // 导航栏
       Row() {
         Button() {
-          Text('←').fontSize(22).fontColor('#212121');
+          Text('←').fontSize(22).fontColor($r('app.color.text_primary'));
         }
         .type(ButtonType.Circle)
         .backgroundColor(Color.Transparent)
@@ -45,7 +45,7 @@ struct SettingsPage {
         Text('设置')
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#212121')
+          .fontColor($r('app.color.text_primary'))
           .layoutWeight(1)
           .textAlign(TextAlign.Center);
 
@@ -54,7 +54,7 @@ struct SettingsPage {
       .width('100%')
       .height(56)
       .padding({ left: 8, right: 8 })
-      .backgroundColor(Color.White);
+      .backgroundColor($r('app.color.card_background'));
 
       // 设置项列表
       List() {
@@ -64,18 +64,18 @@ struct SettingsPage {
             Text('深色模式')
               .fontSize(16)
               .fontWeight(FontWeight.Medium)
-              .fontColor('#212121');
+              .fontColor($r('app.color.text_primary'));
 
             Blank();
 
             Text(this.colorModeLabel)
               .fontSize(14)
-              .fontColor('#9E9E9E')
+              .fontColor($r('app.color.text_secondary'))
               .margin({ right: 4 });
 
             Text('›')
               .fontSize(18)
-              .fontColor('#C0C0C0');
+              .fontColor($r('app.color.arrow_chevron'));
           }
           .width('100%')
           .padding({ left: 16, right: 16, top: 16, bottom: 16 });
@@ -86,11 +86,11 @@ struct SettingsPage {
       }
       .width('100%')
       .layoutWeight(1)
-      .backgroundColor(Color.White)
-      .divider({ strokeWidth: 0.5, color: '#F0F0F0', startMargin: 16 });
+      .backgroundColor($r('app.color.card_background'))
+      .divider({ strokeWidth: 0.5, color: $r('app.color.divider'), startMargin: 16 });
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#F5F5F5');
+    .backgroundColor($r('app.color.page_background'));
   }
 }

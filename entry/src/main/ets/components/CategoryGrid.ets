@@ -22,7 +22,7 @@ export struct CategoryGrid {
       .columnsGap(8)
       .padding(16)
       .width('100%')
-      .backgroundColor(Color.White)
+      .backgroundColor($r('app.color.card_background'))
     }
   }
 
@@ -34,7 +34,9 @@ export struct CategoryGrid {
 
       Text(item.name)
         .fontSize(13)
-        .fontColor(this.selectedCategory === item.name ? '#FF6F00' : '#757575')
+        .fontColor(this.selectedCategory === item.name ?
+          $r('app.color.category_text_selected') :
+          $r('app.color.category_text_unselected'))
         .fontWeight(this.selectedCategory === item.name ? FontWeight.Medium : FontWeight.Normal)
         .margin({ top: 8 });
     }
@@ -43,10 +45,12 @@ export struct CategoryGrid {
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
     .borderRadius(12)
-    .backgroundColor(this.selectedCategory === item.name ? '#FFF3E0' : '#F5F5F5')
+    .backgroundColor(this.selectedCategory === item.name ?
+      $r('app.color.category_bg_selected') :
+      $r('app.color.page_background'))
     .border({
       width: this.selectedCategory === item.name ? 1.5 : 0,
-      color: '#FF6F00'
+      color: $r('app.color.accent_orange')
     })
     .onClick(() => {
       this.selectedCategory = item.name;

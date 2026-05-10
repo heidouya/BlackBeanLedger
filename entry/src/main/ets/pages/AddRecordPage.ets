@@ -132,7 +132,7 @@ export struct AddRecordContent {
             preview: this.computedPreview
           });
 
-          Divider().color('#F0F0F0').margin({ left: 16, right: 16 });
+          Divider().color($r('app.color.divider')).margin({ left: 16, right: 16 });
 
           // 分类宫格
           CategoryGrid({
@@ -140,7 +140,7 @@ export struct AddRecordContent {
             selectedCategory: $selectedCategory
           });
 
-          Divider().color('#F0F0F0').margin({ left: 16, right: 16 });
+          Divider().color($r('app.color.divider')).margin({ left: 16, right: 16 });
 
           // 备注
           Row() {
@@ -152,26 +152,26 @@ export struct AddRecordContent {
               .borderRadius(0)
               .border({ width: 0, color: Color.Transparent })
               .padding(0)
-              .placeholderColor('#9E9E9E')
+              .placeholderColor($r('app.color.text_secondary'))
               .onChange((value: string) => { this.note = value; });
           }
           .width('100%')
           .padding({ left: 16, right: 16, top: 14, bottom: 14 })
-          .backgroundColor(Color.White)
+          .backgroundColor($r('app.color.card_background'))
           .alignItems(VerticalAlign.Center);
 
-          Divider().color('#F0F0F0').margin({ left: 16, right: 16 });
+          Divider().color($r('app.color.divider')).margin({ left: 16, right: 16 });
 
           // 日期
           Row() {
-            Text('日期').fontSize(15).fontColor('#424242');
+            Text('日期').fontSize(15).fontColor($r('app.color.text_medium'));
             Blank();
-            Text(this.displayDate).fontSize(15).fontColor('#212121').margin({ right: 8 });
-            Text('›').fontSize(18).fontColor('#9E9E9E');
+            Text(this.displayDate).fontSize(15).fontColor($r('app.color.text_primary')).margin({ right: 8 });
+            Text('›').fontSize(18).fontColor($r('app.color.text_secondary'));
           }
           .width('100%')
           .padding({ left: 16, right: 16, top: 14, bottom: 14 })
-          .backgroundColor(Color.White)
+          .backgroundColor($r('app.color.card_background'))
           .alignItems(VerticalAlign.Center)
           .onClick(() => { this.showDatePicker(); });
 
@@ -195,7 +195,7 @@ export struct AddRecordContent {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#F5F5F5')
+    .backgroundColor($r('app.color.page_background'))
   }
 }
 
@@ -221,7 +221,7 @@ struct AddRecordPage {
       // 导航栏
       Row() {
         Button() {
-          Text('←').fontSize(22).fontColor('#212121');
+          Text('←').fontSize(22).fontColor($r('app.color.text_primary'));
         }
         .type(ButtonType.Circle)
         .backgroundColor(Color.Transparent)
@@ -232,7 +232,7 @@ struct AddRecordPage {
         Text(this.isEdit ? '编辑' : '记一笔')
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
-          .fontColor('#212121')
+          .fontColor($r('app.color.text_primary'))
           .layoutWeight(1)
           .textAlign(TextAlign.Center);
 
@@ -241,7 +241,7 @@ struct AddRecordPage {
       .width('100%')
       .height(56)
       .padding({ left: 8, right: 8 })
-      .backgroundColor(Color.White);
+      .backgroundColor($r('app.color.card_background'));
 
       // 复用表单组件
       AddRecordContent({
@@ -253,6 +253,6 @@ struct AddRecordPage {
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#F5F5F5')
+    .backgroundColor($r('app.color.page_background'))
   }
 }

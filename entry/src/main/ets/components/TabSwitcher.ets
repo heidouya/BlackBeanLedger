@@ -13,10 +13,12 @@ export struct TabSwitcher {
         Text('支出')
           .fontSize(18)
           .fontWeight(this.currentType === 'expense' ? FontWeight.Bold : FontWeight.Normal)
-          .fontColor(this.currentType === 'expense' ? '#212121' : '#9E9E9E')
+          .fontColor(this.currentType === 'expense' ?
+            $r('app.color.text_primary') :
+            $r('app.color.text_secondary'))
           .padding({ top: 16, bottom: 12 });
         if (this.currentType === 'expense') {
-          Divider().width(28).height(3).color('#FF6F00').borderRadius(2);
+          Divider().width(28).height(3).color($r('app.color.accent_orange')).borderRadius(2);
         } else {
           Divider().width(28).height(3).color(Color.Transparent);
         }
@@ -30,10 +32,12 @@ export struct TabSwitcher {
         Text('收入')
           .fontSize(18)
           .fontWeight(this.currentType === 'income' ? FontWeight.Bold : FontWeight.Normal)
-          .fontColor(this.currentType === 'income' ? '#4CAF50' : '#9E9E9E')
+          .fontColor(this.currentType === 'income' ?
+            $r('app.color.income_green') :
+            $r('app.color.text_secondary'))
           .padding({ top: 16, bottom: 12 });
         if (this.currentType === 'income') {
-          Divider().width(28).height(3).color('#4CAF50').borderRadius(2);
+          Divider().width(28).height(3).color($r('app.color.income_green')).borderRadius(2);
         } else {
           Divider().width(28).height(3).color(Color.Transparent);
         }
@@ -43,7 +47,7 @@ export struct TabSwitcher {
       .onClick(() => this.onChange?.('income'));
     }
     .width('100%')
-    .backgroundColor(Color.White)
+    .backgroundColor($r('app.color.card_background'))
     .padding({ left: 40, right: 40 });
   }
 }

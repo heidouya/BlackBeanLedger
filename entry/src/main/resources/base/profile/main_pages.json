@@ -6,6 +6,7 @@
     "pages/RecordDetailPage",
     "pages/SettingsPage",
     "pages/DarkModePage",
-    "pages/BudgetSetPage"
+    "pages/BudgetSetPage",
+    "pages/ExportChartPage"
   ]
 }

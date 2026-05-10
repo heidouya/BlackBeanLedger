@@ -1,6 +1,13 @@
 /**
  * 日期格式化工具类
  */
+
+/** 年月对象 */
+class YearMonth {
+  year: number = 0;
+  month: number = 0;
+}
+
 export class DateUtil {
   /**
    * 将 Date 对象格式化为 YYYY-MM-DD 字符串
@@ -22,7 +29,6 @@ export class DateUtil {
     if (DateUtil.isYesterday(dateStr)) {
       return '昨天';
     }
-    // 返回 MM月DD日 格式
     const parts: string[] = dateStr.split('-');
     if (parts.length === 3) {
       return `${parseInt(parts[1])}月${parseInt(parts[2])}日`;
@@ -33,12 +39,12 @@ export class DateUtil {
   /**
    * 获取当前年月
    */
-  static getCurrentYearMonth(): { year: number; month: number } {
+  static getCurrentYearMonth(): YearMonth {
     const now: Date = new Date();
-    return {
-      year: now.getFullYear(),
-      month: now.getMonth() + 1
-    };
+    const result: YearMonth = new YearMonth();
+    result.year = now.getFullYear();
+    result.month = now.getMonth() + 1;
+    return result;
   }
 
   /**

@@ -51,7 +51,7 @@ export class RecordDatabase {
       console.info('RecordDatabase: 数据库初始化成功');
     } catch (err) {
       console.error(`RecordDatabase: 数据库初始化失败, ${JSON.stringify(err)}`);
-      throw err;
+      throw new Error('数据库初始化失败');
     }
   }
 
@@ -76,7 +76,7 @@ export class RecordDatabase {
       return rowId;
     } catch (err) {
       console.error(`RecordDatabase: 插入记录失败, ${JSON.stringify(err)}`);
-      throw err;
+      throw new Error('插入记录失败');
     }
   }
 
@@ -95,7 +95,7 @@ export class RecordDatabase {
       console.info(`RecordDatabase: 删除记录成功, id=${id}`);
     } catch (err) {
       console.error(`RecordDatabase: 删除记录失败, ${JSON.stringify(err)}`);
-      throw err;
+      throw new Error('删除记录失败');
     }
   }
 

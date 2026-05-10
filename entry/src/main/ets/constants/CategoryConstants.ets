@@ -20,9 +20,9 @@ export const EXPENSE_CATEGORIES: CategoryItem[] = [
 
 /** 收入分类列表 */
 export const INCOME_CATEGORIES: CategoryItem[] = [
-  { name: '工资', icon: $r('sys.symbol.banknote') },
+  { name: '工资', icon: $r('sys.symbol.creditcard') },
   { name: '奖金', icon: $r('sys.symbol.gift') },
-  { name: '理财', icon: $r('sys.symbol.chart_line_uptrend_xyaxis') },
+  { name: '理财', icon: $r('sys.symbol.repeat') },
   { name: '其他', icon: $r('sys.symbol.ellipsis_circle') }
 ];
 

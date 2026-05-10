@@ -3,6 +3,8 @@
     "pages/Index",
     "pages/AddRecordPage",
     "pages/StatsPage",
-    "pages/RecordDetailPage"
+    "pages/RecordDetailPage",
+    "pages/SettingsPage",
+    "pages/DarkModePage"
   ]
 }

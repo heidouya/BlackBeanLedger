@@ -1,17 +1,35 @@
-import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
+import { AbilityConstant, common, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { RecordDatabase } from '../database/RecordDatabase';
+import { ThemePreferences } from '../utils/ThemePreferences';
 
 const DOMAIN = 0x0000;
 
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
-    try {
-      this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
-    } catch (err) {
-      hilog.error(DOMAIN, 'testTag', 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
-    }
+    // 先初始化偏好设置，再根据保存的模式切换深浅色
+    ThemePreferences.getInstance().init(this.context).then(() => {
+      const mode: string = ThemePreferences.getInstance().getColorModeSync();
+      try {
+        const appCtx: common.ApplicationContext = this.context.getApplicationContext();
+        switch (mode) {
+          case 'light':
+            appCtx.setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT);
+            break;
+          case 'dark':
+            appCtx.setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_DARK);
+            break;
+          default:
+            appCtx.setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
+            break;
+        }
+      } catch (err) {
+        hilog.error(DOMAIN, 'testTag', 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
+      }
+    }).catch((err: Error) => {
+      hilog.error(DOMAIN, 'testTag', 'ThemePreferences init failed: %{public}s', err.message);
+    });
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
   }
 

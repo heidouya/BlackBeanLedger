@@ -180,6 +180,17 @@ struct Index {
                 .fontWeight(FontWeight.Bold)
                 .fontColor('#212121')
                 .layoutWeight(1);
+
+              Button() {
+                Text('⚙️')
+                  .fontSize(20);
+              }
+              .type(ButtonType.Circle)
+              .backgroundColor(Color.Transparent)
+              .width(40).height(40)
+              .onClick(() => {
+                router.pushUrl({ url: 'pages/SettingsPage' });
+              });
             }
             .width('100%')
             .padding({ left: 16, top: 16, bottom: 12 });

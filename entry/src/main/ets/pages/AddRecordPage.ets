@@ -1,6 +1,6 @@
 import { promptAction } from '@kit.ArkUI';
 import { router } from '@kit.ArkUI';
-import { InsertRecord } from '../model/RecordModel';
+import { InsertRecord, Record } from '../model/RecordModel';
 import { RecordDatabase } from '../database/RecordDatabase';
 import { DateUtil } from '../utils/DateUtil';
 import { getCategoriesByType } from '../constants/CategoryConstants';
@@ -9,8 +9,13 @@ import { AmountDisplay } from '../components/AmountDisplay';
 import { CategoryGrid } from '../components/CategoryGrid';
 import { CustomKeypad } from '../components/CustomKeypad';
 
+/** 编辑模式路由参数 */
+class EditRecordParams {
+  record?: Record;
+}
+
 /**
- * 记账表单内容组件（在弹窗中使用）
+ * 记账表单内容组件（支持新增/编辑双模式）
  */
 @Component
 export struct AddRecordContent {
@@ -22,11 +27,29 @@ export struct AddRecordContent {
   @State note: string = '';
   @State selectedDate: Date = new Date();
   @State displayDate: string = '今天';
+  /** 编辑模式：传入待编辑的记录 */
+  @Prop editRecord?: Record;
   private db: RecordDatabase = RecordDatabase.getInstance();
   onSaved?: () => void;
 
   aboutToAppear(): void {
-    this.displayDate = '今天';
+    if (this.editRecord) {
+      this.populateEditData();
+    } else {
+      this.displayDate = '今天';
+    }
+  }
+
+  /** 编辑模式：用已有数据填充表单 */
+  private populateEditData(): void {
+    const rec: Record = this.editRecord!;
+    this.currentType = rec.type;
+    this.amountStr = rec.amount.toString();
+    this.amountExpression = rec.amount.toString();
+    this.selectedCategory = rec.category;
+    this.note = rec.note;
+    this.displayDate = DateUtil.formatMonthDay(new Date(rec.date));
+    this.selectedDate = new Date(rec.date);
   }
 
   private resetForm(): void {
@@ -78,8 +101,13 @@ export struct AddRecordContent {
       newRec.note = this.note;
       newRec.date = dateTime;
       newRec.timestamp = timestamp;
-      await this.db.insertRecord(newRec);
-      promptAction.showToast({ message: '保存成功', duration: 2000 });
+      if (this.editRecord) {
+        await this.db.updateRecord(this.editRecord.id, newRec);
+        promptAction.showToast({ message: '修改成功', duration: 2000 });
+      } else {
+        await this.db.insertRecord(newRec);
+        promptAction.showToast({ message: '保存成功', duration: 2000 });
+      }
       this.resetForm();
       this.onSaved?.();
     } catch (err) {
@@ -172,81 +200,19 @@ export struct AddRecordContent {
 }
 
 /**
- * 记账页面（独立路由入口）
+ * 记账页面（独立路由入口，支持新增/编辑）
  */
 @Entry
 @Component
 struct AddRecordPage {
-  @State currentType: 'expense' | 'income' = 'expense';
-  @State amountStr: string = '';
-  @State amountExpression: string = '';
-  @State computedPreview: string = '';
-  @State selectedCategory: string = '';
-  @State note: string = '';
-  @State selectedDate: Date = new Date();
-  @State displayDate: string = '今天';
-  private db: RecordDatabase = RecordDatabase.getInstance();
+  private editRecord?: Record = undefined;
+  private isEdit: boolean = false;
 
   aboutToAppear(): void {
-    this.displayDate = '今天';
-  }
-
-  private resetForm(): void {
-    this.amountStr = '';
-    this.amountExpression = '';
-    this.computedPreview = '';
-    this.selectedCategory = '';
-    this.note = '';
-    this.displayDate = '今天';
-    this.selectedDate = new Date();
-  }
-
-  private switchTab(type: 'expense' | 'income'): void {
-    this.currentType = type;
-    this.selectedCategory = '';
-  }
-
-  private showDatePicker(): void {
-    this.getUIContext().showDatePickerDialog({
-      start: new Date('2000-1-1'),
-      end: new Date('2100-12-31'),
-      selected: this.selectedDate,
-      onDateAccept: (value: Date) => {
-        this.selectedDate = value;
-        this.displayDate = DateUtil.formatMonthDay(value);
-      }
-    });
-  }
-
-  private async saveRecord(): Promise<void> {
-    const amount: number = parseFloat(this.amountStr) || 0;
-    if (amount <= 0) {
-      promptAction.showToast({ message: '请输入金额', duration: 2000 });
-      return;
-    }
-    if (!this.selectedCategory) {
-      promptAction.showToast({ message: '请选择分类', duration: 2000 });
-      return;
-    }
-    try {
-      const dateTime: string = DateUtil.formatDateTime(
-        this.displayDate === '今天' ? new Date() : this.selectedDate
-      );
-      const timestamp: number = DateUtil.getTimestamp(dateTime);
-      const newRec: InsertRecord = new InsertRecord();
-      newRec.amount = amount;
-      newRec.type = this.currentType;
-      newRec.category = this.selectedCategory;
-      newRec.note = this.note;
-      newRec.date = dateTime;
-      newRec.timestamp = timestamp;
-      await this.db.insertRecord(newRec);
-      promptAction.showToast({ message: '保存成功', duration: 2000 });
-      this.resetForm();
-      router.back();
-    } catch (err) {
-      promptAction.showToast({ message: '保存失败', duration: 2000 });
-      console.error(`保存记录失败: ${JSON.stringify(err)}`);
+    const params = router.getParams() as EditRecordParams;
+    if (params && params.record) {
+      this.editRecord = params.record;
+      this.isEdit = true;
     }
   }
 
@@ -263,7 +229,7 @@ struct AddRecordPage {
         .height(40)
         .onClick(() => { router.back(); });
 
-        Text('记一笔')
+        Text(this.isEdit ? '编辑' : '记一笔')
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
           .fontColor('#212121')
@@ -277,81 +243,13 @@ struct AddRecordPage {
       .padding({ left: 8, right: 8 })
       .backgroundColor(Color.White);
 
-      // 表单内容
-      Scroll() {
-        Column() {
-          // Tab 切换
-          TabSwitcher({
-            currentType: this.currentType,
-            onChange: (type: 'expense' | 'income') => this.switchTab(type)
-          });
-
-          // 金额展示
-          AmountDisplay({
-            expression: this.amountExpression,
-            preview: this.computedPreview
-          });
-
-          Divider().color('#F0F0F0').margin({ left: 16, right: 16 });
-
-          // 分类宫格
-          CategoryGrid({
-            categories: getCategoriesByType(this.currentType),
-            selectedCategory: $selectedCategory
-          });
-
-          Divider().color('#F0F0F0').margin({ left: 16, right: 16 });
-
-          // 备注
-          Row() {
-            TextInput({ placeholder: '备注 (可选)', text: this.note })
-              .fontSize(15)
-              .layoutWeight(1)
-              .maxLength(50)
-              .backgroundColor(Color.Transparent)
-              .borderRadius(0)
-              .border({ width: 0, color: Color.Transparent })
-              .padding(0)
-              .placeholderColor('#9E9E9E')
-              .onChange((value: string) => { this.note = value; });
-          }
-          .width('100%')
-          .padding({ left: 16, right: 16, top: 14, bottom: 14 })
-          .backgroundColor(Color.White)
-          .alignItems(VerticalAlign.Center);
-
-          Divider().color('#F0F0F0').margin({ left: 16, right: 16 });
-
-          // 日期
-          Row() {
-            Text('日期').fontSize(15).fontColor('#424242');
-            Blank();
-            Text(this.displayDate).fontSize(15).fontColor('#212121').margin({ right: 8 });
-            Text('›').fontSize(18).fontColor('#9E9E9E');
-          }
-          .width('100%')
-          .padding({ left: 16, right: 16, top: 14, bottom: 14 })
-          .backgroundColor(Color.White)
-          .alignItems(VerticalAlign.Center)
-          .onClick(() => { this.showDatePicker(); });
-
-          Blank().height(20);
+      // 复用表单组件
+      AddRecordContent({
+        editRecord: this.editRecord,
+        onSaved: () => {
+          router.back();
         }
-        .width('100%');
-      }
-      .layoutWeight(1)
-      .scrollBar(BarState.Off)
-      .edgeEffect(EdgeEffect.Spring)
-
-      // 自定义键盘
-      CustomKeypad({
-        expression: $amountExpression,
-        preview: $computedPreview,
-        onComplete: (value: number) => {
-          this.amountStr = value.toString();
-          this.saveRecord();
-        }
-      });
+      })
     }
     .width('100%')
     .height('100%')

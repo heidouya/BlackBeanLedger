@@ -71,6 +71,41 @@ export class RecordDatabase {
     }
   }
 
+  async updateRecord(id: number, record: InsertRecord): Promise<void> {
+    if (!this.rdbStore) {
+      throw new Error('数据库未初始化');
+    }
+    const valueBucket: relationalStore.ValuesBucket = {
+      'amount': record.amount,
+      'type': record.type,
+      'category': record.category,
+      'note': record.note,
+      'date': record.date,
+      'timestamp': record.timestamp
+    };
+    const predicates: relationalStore.RdbPredicates =
+      new relationalStore.RdbPredicates(TABLE_NAME);
+    predicates.equalTo('id', id);
+    try {
+      await this.rdbStore.update(valueBucket, predicates);
+      console.info(`RecordDatabase: 更新记录成功, id=${id}`);
+    } catch (err) {
+      console.error(`RecordDatabase: 更新记录失败, ${JSON.stringify(err)}`);
+      throw new Error('更新记录失败');
+    }
+  }
+
+  async getRecordById(id: number): Promise<Record | null> {
+    if (!this.rdbStore) {
+      throw new Error('数据库未初始化');
+    }
+    const predicates: relationalStore.RdbPredicates =
+      new relationalStore.RdbPredicates(TABLE_NAME);
+    predicates.equalTo('id', id);
+    const records: Record[] = await this.executeQuery(predicates);
+    return records.length > 0 ? records[0] : null;
+  }
+
   async deleteRecord(id: number): Promise<void> {
     if (!this.rdbStore) {
       throw new Error('数据库未初始化');

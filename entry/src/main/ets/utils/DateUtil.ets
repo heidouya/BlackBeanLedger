@@ -105,4 +105,14 @@ export class DateUtil {
     const date: Date = new Date(normalized);
     return date.getTime();
   }
+
+  /**
+   * 从 "YYYY-MM-DD HH:mm" 格式提取时间部分显示 "HH:mm"
+   */
+  static formatTimeDisplay(dateStr: string): string {
+    if (dateStr.includes(' ')) {
+      return dateStr.split(' ')[1];
+    }
+    return '';
+  }
 }

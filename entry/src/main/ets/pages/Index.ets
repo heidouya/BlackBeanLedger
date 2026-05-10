@@ -1,4 +1,4 @@
-import { promptAction } from '@kit.ArkUI';
+import { router } from '@kit.ArkUI';
 import { Record } from '../model/RecordModel';
 import { RecordDatabase } from '../database/RecordDatabase';
 import { DateUtil } from '../utils/DateUtil';
@@ -167,41 +167,6 @@ struct Index {
     }, 500);
   }
 
-  /**
-   * 删除记录
-   */
-  async deleteRecord(record: Record): Promise<void> {
-    try {
-      await this.db.deleteRecord(record.id);
-      promptAction.showToast({ message: '删除成功', duration: 2000 });
-      await this.loadData();
-    } catch (err) {
-      promptAction.showToast({ message: '删除失败', duration: 2000 });
-    }
-  }
-
-  /**
-   * 弹出删除确认弹窗
-   */
-  private showDeleteDialog(record: Record): void {
-    AlertDialog.show({
-      title: '确认删除',
-      message: '确定要删除这条记录吗？',
-      primaryButton: {
-        value: '取消',
-        action: () => {
-        }
-      },
-      secondaryButton: {
-        value: '删除',
-        fontColor: '#FF5252',
-        action: () => {
-          this.deleteRecord(record);
-        }
-      }
-    });
-  }
-
   build() {
     Tabs({ index: this.currentTabIndex }) {
       // Tab 0: 明细
@@ -236,12 +201,12 @@ struct Index {
                       ListItem() {
                         this.buildRecordRow(record);
                       }
-                      .gesture(
-                        LongPressGesture()
-                          .onAction(() => {
-                            this.showDeleteDialog(record);
-                          })
-                      )
+                      .onClick(() => {
+                        router.pushUrl({
+                          url: 'pages/RecordDetailPage',
+                          params: { id: record.id }
+                        });
+                      })
                     }, (record: Record) => record.id.toString())
                   }
                 }, (group: RecordGroup, groupIndex: number) => groupIndex.toString())

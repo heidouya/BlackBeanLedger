@@ -5,6 +5,7 @@
     "pages/StatsPage",
     "pages/RecordDetailPage",
     "pages/SettingsPage",
-    "pages/DarkModePage"
+    "pages/DarkModePage",
+    "pages/BudgetSetPage"
   ]
 }

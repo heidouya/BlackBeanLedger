@@ -4,6 +4,7 @@ import { InsertRecord, Record } from '../model/RecordModel';
 import { RecordDatabase } from '../database/RecordDatabase';
 import { DateUtil } from '../utils/DateUtil';
 import { getCategoriesByType } from '../constants/CategoryConstants';
+import { BudgetPreferences } from '../utils/BudgetPreferences';
 import { TabSwitcher } from '../components/TabSwitcher';
 import { AmountDisplay } from '../components/AmountDisplay';
 import { CategoryGrid } from '../components/CategoryGrid';
@@ -30,6 +31,7 @@ export struct AddRecordContent {
   /** 编辑模式：传入待编辑的记录 */
   @Prop editRecord?: Record;
   private db: RecordDatabase = RecordDatabase.getInstance();
+  private budgetPrefs: BudgetPreferences = BudgetPreferences.getInstance();
   onSaved?: () => void;
 
   aboutToAppear(): void {
@@ -89,6 +91,46 @@ export struct AddRecordContent {
       promptAction.showToast({ message: '请选择分类', duration: 2000 });
       return;
     }
+
+    // 超支检查：仅针对新增支出（非编辑、非收入）
+    if (!this.editRecord && this.currentType === 'expense') {
+      const budget: number = this.budgetPrefs.getBudgetSync();
+      if (budget > 0) {
+        try {
+          const currentYM = DateUtil.getCurrentYearMonth();
+          const monthStats = await this.db.getMonthStats(currentYM.year, currentYM.month);
+          const projectedTotal: number = monthStats.totalExpense + amount;
+          if (projectedTotal > budget) {
+            this.getUIContext().showAlertDialog({
+              title: '超支提醒',
+              message: `本月已支出 ¥${monthStats.totalExpense.toFixed(2)}，本次 ¥${amount.toFixed(2)}，合计将超出预算 ¥${budget}。\n确定继续记录吗？`,
+              primaryButton: {
+                value: '继续',
+                fontColor: $r('app.color.expense_red'),
+                action: () => {
+                  this.performSave(amount);
+                }
+              },
+              secondaryButton: {
+                value: '取消',
+                action: () => {
+                }
+              }
+            });
+            return;
+          }
+        } catch (err) {
+          console.error(`预算检查失败: ${JSON.stringify(err)}`);
+          // 预算检查出错时不阻断，继续保存
+        }
+      }
+    }
+
+    await this.performSave(amount);
+  }
+
+  /** 实际执行保存（已通过校验与超支确认） */
+  private async performSave(amount: number): Promise<void> {
     try {
       const dateTime: string = DateUtil.formatDateTime(
         this.displayDate === '今天' ? new Date() : this.selectedDate

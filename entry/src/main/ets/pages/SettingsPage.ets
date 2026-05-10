@@ -1,5 +1,6 @@
 import { router } from '@kit.ArkUI';
 import { ThemePreferences } from '../utils/ThemePreferences';
+import { BudgetPreferences } from '../utils/BudgetPreferences';
 
 /** 模式显示名映射 */
 function getModeLabel(mode: string): string {
@@ -14,20 +15,28 @@ function getModeLabel(mode: string): string {
 }
 
 /**
- * 设置页 —— 提供深色模式等配置入口
+ * 设置页 —— 提供预算设置、深色模式等配置入口
  */
 @Entry
 @Component
 struct SettingsPage {
   @State colorModeLabel: string = '跟随系统';
-  private prefs: ThemePreferences = ThemePreferences.getInstance();
+  @State budgetLabel: string = '未设置';
+  private themePrefs: ThemePreferences = ThemePreferences.getInstance();
+  private budgetPrefs: BudgetPreferences = BudgetPreferences.getInstance();
 
   aboutToAppear(): void {
-    this.colorModeLabel = getModeLabel(this.prefs.getColorModeSync());
+    this.refreshLabels();
   }
 
   onPageShow(): void {
-    this.colorModeLabel = getModeLabel(this.prefs.getColorModeSync());
+    this.refreshLabels();
+  }
+
+  private refreshLabels(): void {
+    this.colorModeLabel = getModeLabel(this.themePrefs.getColorModeSync());
+    const budget: number = this.budgetPrefs.getBudgetSync();
+    this.budgetLabel = budget > 0 ? `¥${budget}` : '未设置';
   }
 
   build() {
@@ -58,6 +67,34 @@ struct SettingsPage {
 
       // 设置项列表
       List() {
+        // 预算设置项
+        ListItem() {
+          Row() {
+            Text('每月预算')
+              .fontSize(16)
+              .fontWeight(FontWeight.Medium)
+              .fontColor($r('app.color.text_primary'));
+
+            Blank();
+
+            Text(this.budgetLabel)
+              .fontSize(14)
+              .fontColor(this.budgetLabel === '未设置' ?
+                $r('app.color.text_secondary') :
+                $r('app.color.accent_orange'))
+              .margin({ right: 4 });
+
+            Text('›')
+              .fontSize(18)
+              .fontColor($r('app.color.arrow_chevron'));
+          }
+          .width('100%')
+          .padding({ left: 16, right: 16, top: 16, bottom: 16 });
+        }
+        .onClick(() => {
+          router.pushUrl({ url: 'pages/BudgetSetPage' });
+        });
+
         // 深色模式设置项
         ListItem() {
           Row() {

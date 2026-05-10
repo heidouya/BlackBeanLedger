@@ -3,12 +3,13 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { RecordDatabase } from '../database/RecordDatabase';
 import { ThemePreferences } from '../utils/ThemePreferences';
+import { BudgetPreferences } from '../utils/BudgetPreferences';
 
 const DOMAIN = 0x0000;
 
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
-    // 先初始化偏好设置，再根据保存的模式切换深浅色
+    // 初始化偏好设置：主题和预算共用同一存储文件，需分别 init
     ThemePreferences.getInstance().init(this.context).then(() => {
       const mode: string = ThemePreferences.getInstance().getColorModeSync();
       try {
@@ -30,6 +31,12 @@ export default class EntryAbility extends UIAbility {
     }).catch((err: Error) => {
       hilog.error(DOMAIN, 'testTag', 'ThemePreferences init failed: %{public}s', err.message);
     });
+
+    // 初始化预算偏好（与主题共用 app_settings 文件，不同 key）
+    BudgetPreferences.getInstance().init(this.context).catch((err: Error) => {
+      hilog.error(DOMAIN, 'testTag', 'BudgetPreferences init failed: %{public}s', err.message);
+    });
+
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
   }
 

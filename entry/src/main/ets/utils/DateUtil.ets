@@ -1,5 +1,6 @@
 /**
  * 日期格式化工具类
+ * 日期格式: "YYYY-MM-DD HH:mm"
  */
 
 /** 年月对象 */
@@ -10,7 +11,19 @@ class YearMonth {
 
 export class DateUtil {
   /**
-   * 将 Date 对象格式化为 YYYY-MM-DD 字符串
+   * 将 Date 对象格式化为 "YYYY-MM-DD HH:mm" 字符串
+   */
+  static formatDateTime(date: Date): string {
+    const year: number = date.getFullYear();
+    const month: string = String(date.getMonth() + 1).padStart(2, '0');
+    const day: string = String(date.getDate()).padStart(2, '0');
+    const hours: string = String(date.getHours()).padStart(2, '0');
+    const minutes: string = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  }
+
+  /**
+   * 将 Date 格式化为 "YYYY-MM-DD"（仅日期部分）
    */
   static formatDate(date: Date): string {
     const year: number = date.getFullYear();
@@ -20,20 +33,38 @@ export class DateUtil {
   }
 
   /**
+   * 从日期字符串提取日期部分 "YYYY-MM-DD"
+   */
+  static extractDatePart(dateStr: string): string {
+    return dateStr.substring(0, 10);
+  }
+
+  /**
    * 判断日期字符串是今天/昨天/其他，返回显示文本
+   * 支持 "YYYY-MM-DD HH:mm" 和 "YYYY-MM-DD" 格式
    */
   static formatDateDisplay(dateStr: string): string {
-    if (DateUtil.isToday(dateStr)) {
+    const datePart: string = DateUtil.extractDatePart(dateStr);
+    if (DateUtil.isToday(datePart)) {
       return '今天';
     }
-    if (DateUtil.isYesterday(dateStr)) {
+    if (DateUtil.isYesterday(datePart)) {
       return '昨天';
     }
-    const parts: string[] = dateStr.split('-');
+    const parts: string[] = datePart.split('-');
     if (parts.length === 3) {
-      return `${parseInt(parts[1])}月${parseInt(parts[2])}日`;
+      return `${parseInt(parts[0])}年${parseInt(parts[1])}月${parseInt(parts[2])}日`;
     }
     return dateStr;
+  }
+
+  /**
+   * 格式化为 "MM月DD日"（用于日期选择器显示）
+   */
+  static formatMonthDay(date: Date): string {
+    const month: number = date.getMonth() + 1;
+    const day: number = date.getDate();
+    return `${month}月${day}日`;
   }
 
   /**
@@ -48,7 +79,7 @@ export class DateUtil {
   }
 
   /**
-   * 判断日期字符串是否为今天
+   * 判断日期字符串（"YYYY-MM-DD"）是否为今天
    */
   static isToday(dateStr: string): boolean {
     const today: string = DateUtil.formatDate(new Date());
@@ -56,7 +87,7 @@ export class DateUtil {
   }
 
   /**
-   * 判断日期字符串是否为昨天
+   * 判断日期字符串（"YYYY-MM-DD"）是否为昨天
    */
   static isYesterday(dateStr: string): boolean {
     const now: Date = new Date();
@@ -66,10 +97,12 @@ export class DateUtil {
   }
 
   /**
-   * 将 YYYY-MM-DD 日期字符串转为时间戳（毫秒，当天 00:00:00）
+   * 将日期时间字符串转为时间戳（毫秒）
    */
-  static getDateTimestamp(dateStr: string): number {
-    const date: Date = new Date(dateStr);
+  static getTimestamp(dateStr: string): number {
+    // 将 "YYYY-MM-DD HH:mm" 转为 ISO 格式以便解析
+    const normalized: string = dateStr.replace(' ', 'T') + ':00';
+    const date: Date = new Date(normalized);
     return date.getTime();
   }
 }

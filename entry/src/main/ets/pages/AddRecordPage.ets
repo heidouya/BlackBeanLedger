@@ -1,6 +1,7 @@
 import { router } from '@kit.ArkUI';
 import { promptAction } from '@kit.ArkUI';
-import { RecordModel } from '../model/RecordModel';
+import { Record } from '../model/RecordModel';
+import { InsertRecord } from '../model/RecordModel';
 import { RecordDatabase } from '../database/RecordDatabase';
 import { DateUtil } from '../utils/DateUtil';
 import { CategoryItem, getCategoriesByType } from '../constants/CategoryConstants';
@@ -8,81 +9,24 @@ import { CategoryItem, getCategoriesByType } from '../constants/CategoryConstant
 @Entry
 @Component
 struct AddRecordPage {
-  @State currentType: number = 0; // 0=支出, 1=收入
-  @State amountStr: string = '0';
+  @State currentType: 'expense' | 'income' = 'expense';
+  @State amountStr: string = '';
   @State selectedCategory: string = '';
   @State note: string = '';
   @State selectedDate: Date = new Date();
-  @State dateStr: string = DateUtil.formatDate(new Date());
-  @State tabIndicatorOffset: number = 0;
+  @State displayDate: string = '今天';
   private db: RecordDatabase = RecordDatabase.getInstance();
 
-  /**
-   * 键盘布局
-   */
-  private keypadKeys: string[][] = [
-    ['1', '2', '3', '←'],
-    ['4', '5', '6', '清空'],
-    ['7', '8', '9', '.'],
-    ['0', '确定']
-  ];
-
-  /**
-   * 处理键盘输入
-   */
-  private onKeyPress(key: string): void {
-    if (key === '←') {
-      // 删除最后一位
-      if (this.amountStr.length > 1) {
-        this.amountStr = this.amountStr.substring(0, this.amountStr.length - 1);
-      } else {
-        this.amountStr = '0';
-      }
-    } else if (key === '清空') {
-      this.amountStr = '0';
-    } else if (key === '确定') {
-      this.saveRecord();
-    } else if (key === '.') {
-      // 只允许一个小数点
-      if (this.amountStr.indexOf('.') === -1) {
-        this.amountStr += '.';
-      }
-    } else {
-      // 数字键
-      if (this.amountStr === '0') {
-        this.amountStr = key;
-      } else {
-        // 限制小数点后两位
-        const dotIndex: number = this.amountStr.indexOf('.');
-        if (dotIndex !== -1 && this.amountStr.length - dotIndex > 2) {
-          return;
-        }
-        // 限制总长度
-        if (this.amountStr.replace('.', '').length >= 9) {
-          return;
-        }
-        this.amountStr += key;
-      }
-    }
-  }
-
-  /**
-   * 获取当前金额数值
-   */
-  private getAmount(): number {
-    return parseFloat(this.amountStr) || 0;
+  aboutToAppear(): void {
+    this.displayDate = '今天';
   }
 
   /**
    * Tab 切换
    */
-  private switchTab(type: number): void {
+  private switchTab(type: 'expense' | 'income'): void {
     this.currentType = type;
     this.selectedCategory = '';
-    // 动画切换指示条位置
-    animateTo({ duration: 200, curve: Curve.EaseInOut }, () => {
-      this.tabIndicatorOffset = type === 0 ? 0 : 1;
-    });
   }
 
   /**
@@ -102,7 +46,7 @@ struct AddRecordPage {
       selected: this.selectedDate,
       onDateAccept: (value: Date) => {
         this.selectedDate = value;
-        this.dateStr = DateUtil.formatDate(value);
+        this.displayDate = DateUtil.formatMonthDay(value);
       }
     });
   }
@@ -111,7 +55,7 @@ struct AddRecordPage {
    * 保存记录
    */
   private async saveRecord(): Promise<void> {
-    const amount: number = this.getAmount();
+    const amount: number = parseFloat(this.amountStr) || 0;
 
     // 验证金额
     if (amount <= 0) {
@@ -126,17 +70,21 @@ struct AddRecordPage {
     }
 
     try {
-      const record: RecordModel = {
-        id: 0,
-        amount: amount,
-        type: this.currentType,
-        category: this.selectedCategory,
-        note: this.note,
-        date: this.dateStr,
-        timestamp: DateUtil.getDateTimestamp(this.dateStr)
-      };
+      const dateTime: string = DateUtil.formatDateTime(
+        this.displayDate === '今天' ? new Date() : this.selectedDate
+      );
+      const timestamp: number = DateUtil.getTimestamp(dateTime);
 
-      await this.db.insertRecord(record);
+      const newRec: InsertRecord = new InsertRecord();
+      newRec.amount = amount;
+      newRec.type = this.currentType;
+      newRec.category = this.selectedCategory;
+      newRec.note = this.note;
+      newRec.date = dateTime;
+      newRec.timestamp = timestamp;
+
+      await this.db.insertRecord(newRec);
+
       promptAction.showToast({ message: '保存成功', duration: 2000 });
       router.back();
     } catch (err) {
@@ -150,39 +98,48 @@ struct AddRecordPage {
       // 导航栏
       this.buildNavBar();
 
-      // Tab 切换
-      this.buildTabs();
+      // 滚动内容区域
+      Scroll() {
+        Column() {
+          // Tab 切换
+          this.buildTabs();
 
-      // 金额显示
-      this.buildAmountDisplay();
+          // 金额输入
+          this.buildAmountInput();
 
-      // 分割线
-      Divider().color('#F0F0F0').margin({ left: 16, right: 16 });
+          // 分割线
+          Divider().color('#F0F0F0').margin({ left: 16, right: 16 });
 
-      // 分类宫格
-      this.buildCategoryGrid();
+          // 分类宫格
+          this.buildCategoryGrid();
 
-      // 分割线
-      Divider().color('#F0F0F0').margin({ left: 16, right: 16 });
+          // 分割线
+          Divider().color('#F0F0F0').margin({ left: 16, right: 16 });
 
-      // 备注输入
-      this.buildNoteInput();
+          // 备注输入
+          this.buildNoteInput();
 
-      // 分割线
-      Divider().color('#F0F0F0').margin({ left: 16, right: 16 });
+          // 分割线
+          Divider().color('#F0F0F0').margin({ left: 16, right: 16 });
 
-      // 日期选择
-      this.buildDatePicker();
+          // 日期选择
+          this.buildDatePicker();
 
-      // 键盘
-      this.buildKeypad();
+          // 保存按钮
+          this.buildSaveButton();
 
-      // 保存按钮
-      this.buildSaveButton();
+          // 底部安全区
+          Blank().height(40);
+        }
+        .width('100%');
+      }
+      .layoutWeight(1)
+      .scrollBar(BarState.Off)
+      .edgeEffect(EdgeEffect.Spring);
     }
     .width('100%')
     .height('100%')
-    .backgroundColor('#F8F8F8')
+    .backgroundColor('#F5F5F5')
   }
 
   /**
@@ -192,9 +149,9 @@ struct AddRecordPage {
   buildNavBar() {
     Row() {
       Button() {
-        SymbolGlyph($r('sys.symbol.chevron_left'))
-          .fontSize(20)
-          .fontColor(['#212121']);
+        Text('←')
+          .fontSize(22)
+          .fontColor('#212121');
       }
       .type(ButtonType.Circle)
       .backgroundColor(Color.Transparent)
@@ -211,7 +168,6 @@ struct AddRecordPage {
         .layoutWeight(1)
         .textAlign(TextAlign.Center);
 
-      // 占位保持居中
       Blank().width(40).height(40);
     }
     .width('100%')
@@ -222,84 +178,122 @@ struct AddRecordPage {
 
   /**
    * Tab 切换（支出/收入）
+   * 支出黑字、收入绿字
    */
   @Builder
   buildTabs() {
-    Stack({ alignContent: Alignment.Bottom }) {
-      Row() {
+    Row() {
+      // 支出 Tab
+      Column() {
         Text('支出')
-          .fontSize(16)
-          .fontWeight(this.currentType === 0 ? FontWeight.Bold : FontWeight.Normal)
-          .fontColor(this.currentType === 0 ? '#007AFF' : '#9E9E9E')
-          .textAlign(TextAlign.Center)
-          .layoutWeight(1)
-          .padding({ top: 12, bottom: 12 })
-          .onClick(() => this.switchTab(0));
+          .fontSize(18)
+          .fontWeight(this.currentType === 'expense' ? FontWeight.Bold : FontWeight.Normal)
+          .fontColor(this.currentType === 'expense' ? '#212121' : '#9E9E9E')
+          .padding({ top: 16, bottom: 12 });
 
-        Text('收入')
-          .fontSize(16)
-          .fontWeight(this.currentType === 1 ? FontWeight.Bold : FontWeight.Normal)
-          .fontColor(this.currentType === 1 ? '#007AFF' : '#9E9E9E')
-          .textAlign(TextAlign.Center)
-          .layoutWeight(1)
-          .padding({ top: 12, bottom: 12 })
-          .onClick(() => this.switchTab(1));
+        // 底部指示条
+        if (this.currentType === 'expense') {
+          Divider()
+            .width(28)
+            .height(3)
+            .color('#FF6F00')
+            .borderRadius(2);
+        } else {
+          Divider()
+            .width(28)
+            .height(3)
+            .color(Color.Transparent);
+        }
       }
-      .width('100%')
-      .backgroundColor(Color.White);
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Center)
+      .onClick(() => this.switchTab('expense'));
 
-      // 指示条
-      Row()
-        .width('50%')
-        .height(2)
-        .backgroundColor('#007AFF')
-        .borderRadius(1)
-        .position({ x: this.tabIndicatorOffset === 0 ? 0 : '50%', y: '100%' })
-        .animation({ duration: 200, curve: Curve.EaseInOut });
+      // 收入 Tab
+      Column() {
+        Text('收入')
+          .fontSize(18)
+          .fontWeight(this.currentType === 'income' ? FontWeight.Bold : FontWeight.Normal)
+          .fontColor(this.currentType === 'income' ? '#4CAF50' : '#9E9E9E')
+          .padding({ top: 16, bottom: 12 });
+
+        // 底部指示条
+        if (this.currentType === 'income') {
+          Divider()
+            .width(28)
+            .height(3)
+            .color('#4CAF50')
+            .borderRadius(2);
+        } else {
+          Divider()
+            .width(28)
+            .height(3)
+            .color(Color.Transparent);
+        }
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Center)
+      .onClick(() => this.switchTab('income'));
     }
     .width('100%')
+    .backgroundColor(Color.White)
+    .padding({ left: 40, right: 40 });
   }
 
   /**
-   * 金额显示
+   * 金额输入区
+   * TextInput 隐藏边框，.type(InputType.Number) 唤起数字键盘
    */
   @Builder
-  buildAmountDisplay() {
-    Row() {
-      Text('¥')
-        .fontSize(36)
-        .fontWeight(FontWeight.Bold)
-        .fontColor('#212121')
-        .margin({ right: 4 });
+  buildAmountInput() {
+    Column() {
+      Row() {
+        Text('¥')
+          .fontSize(36)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#212121')
+          .margin({ right: 4 });
 
-      Text(this.amountStr)
-        .fontSize(48)
-        .fontWeight(FontWeight.Bold)
-        .fontColor('#212121')
-        .maxLines(1)
-        .textOverflow({ overflow: TextOverflow.Ellipsis });
+        TextInput({ text: this.amountStr, placeholder: '0.00' })
+          .fontSize(48)
+          .fontWeight(FontWeight.Bold)
+          .fontColor('#212121')
+          .type(InputType.Number)
+          .placeholderColor('#BDBDBD')
+          .backgroundColor(Color.Transparent)
+          .borderRadius(0)
+          .border({ width: 0, color: Color.Transparent })
+          .padding(0)
+          .maxLength(12)
+          .textAlign(TextAlign.Start)
+          .onChange((value: string) => {
+            this.amountStr = value;
+          });
+      }
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center);
     }
     .width('100%')
-    .padding({ left: 24, right: 24, top: 16, bottom: 16 })
+    .padding({ left: 24, right: 24, top: 20, bottom: 20 })
     .backgroundColor(Color.White)
-    .justifyContent(FlexAlign.Center)
+    .alignItems(HorizontalAlign.Center)
   }
 
   /**
-   * 分类宫格
+   * 分类宫格 - 4列
    */
   @Builder
   buildCategoryGrid() {
     Column() {
       Grid() {
-        ForEach(getCategoriesByType(this.currentType), (item: CategoryItem, index: number) => {
+        ForEach(getCategoriesByType(this.currentType), (item: CategoryItem) => {
           GridItem() {
             this.buildCategoryItem(item);
           }
         }, (item: CategoryItem) => item.name)
       }
-      .columnsTemplate('1fr 1fr 1fr')
-      .rowsGap(8)
+      .columnsTemplate('1fr 1fr 1fr 1fr')
+      .rowsGap(12)
       .columnsGap(8)
       .padding(16)
       .width('100%')
@@ -310,29 +304,29 @@ struct AddRecordPage {
   @Builder
   buildCategoryItem(item: CategoryItem) {
     Column() {
-      Stack() {
-        SymbolGlyph(item.icon)
-          .fontSize(28)
-          .fontColor([this.selectedCategory === item.name ? Color.White : '#616161']);
-      }
-      .width(52)
-      .height(52)
-      .borderRadius(26)
-      .backgroundColor(this.selectedCategory === item.name ? '#007AFF' : '#F5F5F5');
+      // Emoji 图标
+      Text(item.icon)
+        .fontSize(30);
 
       Text(item.name)
-        .fontSize(12)
-        .fontColor('#424242')
-        .margin({ top: 6 });
+        .fontSize(13)
+        .fontColor(this.selectedCategory === item.name ? '#FF6F00' : '#757575')
+        .fontWeight(this.selectedCategory === item.name ? FontWeight.Medium : FontWeight.Normal)
+        .margin({ top: 8 });
     }
     .width('100%')
-    .padding({ top: 12, bottom: 12 })
+    .padding({ top: 14, bottom: 14 })
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
     .borderRadius(12)
+    .backgroundColor(this.selectedCategory === item.name ? '#FFF3E0' : '#F5F5F5')
+    .border({
+      width: this.selectedCategory === item.name ? 1.5 : 0,
+      color: '#FF6F00'
+    })
     .onClick(() => {
       this.selectCategory(item.name);
-    })
+    });
   }
 
   /**
@@ -341,30 +335,27 @@ struct AddRecordPage {
   @Builder
   buildNoteInput() {
     Row() {
-      Text('备注')
-        .fontSize(15)
-        .fontColor('#424242')
-        .margin({ right: 12 });
-
-      TextInput({ placeholder: '添加备注...', text: this.note })
+      TextInput({ placeholder: '备注 (可选)', text: this.note })
         .fontSize(15)
         .layoutWeight(1)
         .maxLength(50)
-        .backgroundColor(Color.White)
-        .borderRadius(8)
-        .padding({ left: 12, right: 12 })
+        .backgroundColor(Color.Transparent)
+        .borderRadius(0)
+        .border({ width: 0, color: Color.Transparent })
+        .padding(0)
+        .placeholderColor('#9E9E9E')
         .onChange((value: string) => {
           this.note = value;
         });
     }
     .width('100%')
-    .padding({ left: 16, right: 16, top: 12, bottom: 12 })
+    .padding({ left: 16, right: 16, top: 14, bottom: 14 })
     .backgroundColor(Color.White)
     .alignItems(VerticalAlign.Center)
   }
 
   /**
-   * 日期选择
+   * 日期选择 - 显示 "MM月DD日" 或 "今天"
    */
   @Builder
   buildDatePicker() {
@@ -375,14 +366,14 @@ struct AddRecordPage {
 
       Blank();
 
-      Text(this.dateStr)
+      Text(this.displayDate)
         .fontSize(15)
         .fontColor('#212121')
         .margin({ right: 8 });
 
-      SymbolGlyph($r('sys.symbol.chevron_right'))
-        .fontSize(16)
-        .fontColor(['#9E9E9E']);
+      Text('›')
+        .fontSize(18)
+        .fontColor('#9E9E9E');
     }
     .width('100%')
     .padding({ left: 16, right: 16, top: 14, bottom: 14 })
@@ -394,56 +385,22 @@ struct AddRecordPage {
   }
 
   /**
-   * 计算器式数字键盘
-   */
-  @Builder
-  buildKeypad() {
-    Column() {
-      ForEach(this.keypadKeys, (row: string[], rowIndex: number) => {
-        Row() {
-          ForEach(row, (key: string, colIndex: number) => {
-            if (key === '确定') {
-              // "确定"按钮占两列
-              Button(key)
-                .fontSize(18)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(Color.White)
-                .width('48%')
-                .height(52)
-                .borderRadius(26)
-                .backgroundColor('#007AFF')
-                .onClick(() => this.onKeyPress(key));
-            } else {
-              Button(key)
-                .fontSize(key === '←' || key === '清空' ? 16 : 22)
-                .fontWeight(FontWeight.Medium)
-                .fontColor('#212121')
-                .width('22%')
-                .height(52)
-                .borderRadius(26)
-                .backgroundColor(key === '←' || key === '清空' ? '#E0E0E0' : Color.White)
-                .onClick(() => this.onKeyPress(key));
-            }
-          }, (key: string) => `${rowIndex}_${key}`)
-        }
-        .width('100%')
-        .justifyContent(FlexAlign.SpaceEvenly)
-        .margin({ top: rowIndex === 0 ? 0 : 6, bottom: rowIndex === this.keypadKeys.length - 1 ? 0 : 0 });
-      }, (row: string[]) => row.join('_'))
-    }
-    .width('100%')
-    .padding({ left: 12, right: 12, top: 8, bottom: 8 })
-    .backgroundColor('#F0F0F0')
-  }
-
-  /**
-   * 保存按钮（键盘中已有确定按钮，此处可保留作为备选）
+   * 保存按钮 - 橙色大按钮 "完成"
    */
   @Builder
   buildSaveButton() {
-    // 键盘中的"确定"按钮已承担保存功能，此处不再重复添加
-    Column()
-      .height(0)
-      .width('100%');
+    Button('完成')
+      .fontSize(18)
+      .fontWeight(FontWeight.Bold)
+      .fontColor(Color.White)
+      .width('90%')
+      .height(50)
+      .borderRadius(25)
+      .backgroundColor('#FF6F00')
+      .shadow({ radius: 8, color: '#40FF6F00', offsetY: 4 })
+      .margin({ top: 32, bottom: 8 })
+      .onClick(() => {
+        this.saveRecord();
+      });
   }
 }

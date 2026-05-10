@@ -206,7 +206,7 @@ struct Index {
     Tabs({ index: this.currentTabIndex }) {
       // Tab 0: 明细
       TabContent() {
-        Stack() {
+        Stack({ alignContent: Alignment.Bottom }) {
           Column() {
             // 月份标题
             Row() {
@@ -259,7 +259,7 @@ struct Index {
           .width('100%')
           .height('100%')
 
-          // 黑色圆形加号按钮（悬浮在右下角）
+          // 黑色圆形加号按钮（底部居中悬浮）
           Button() {
             Text('+')
               .fontSize(32)
@@ -270,8 +270,7 @@ struct Index {
           .height(56)
           .backgroundColor('#1C1C1E')
           .shadow({ radius: 12, color: '#601C1C1E', offsetY: 4 })
-          .position({ x: '100%', y: '100%' })
-          .offset({ x: -72, y: -20 })
+          .margin({ bottom: 16 })
           .onClick(() => {
             this.addDialogController.open();
           })
